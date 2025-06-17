@@ -90,22 +90,33 @@ help: ## Show this help message
 	@awk 'BEGIN {FS = ":.*##";} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
 check-env: ## Verify required files exist
+	@echo "Checking required files for environment [$(ENV)]..."
+	@echo "Environment file: $(if $(wildcard $(ENV_FILE)),found [$(ENV_FILE)],not found - using defaults)"
+	@echo "Private key: $(if $(wildcard $(PATH_TO_PRIVATE_KEY)),found [$(PATH_TO_PRIVATE_KEY)],not found)"
 	@if [ ! -f "$(PATH_TO_PRIVATE_KEY)" ]; then \
 		echo "Error: Private key not found at $(PATH_TO_PRIVATE_KEY)"; \
 		exit 1; \
 	fi
+	@echo "Inventory file: $(if $(wildcard $(PATH_TO_INVENTORY)),found [$(PATH_TO_INVENTORY)],not found)"
 	@if [ ! -f "$(PATH_TO_INVENTORY)" ]; then \
 		echo "Error: Inventory file not found at $(PATH_TO_INVENTORY)"; \
 		exit 1; \
 	fi
+	@echo "Package file: $(if $(wildcard $(PATH_TO_PACKAGE)),found [$(PATH_TO_PACKAGE)],not found)"
 	@if [ ! -f "$(PATH_TO_PACKAGE)" ]; then \
 		echo "Error: Package file not found at $(PATH_TO_PACKAGE)"; \
 		exit 1; \
 	fi
-	@if [ -n "$(EXTRA_VARS_FILE)" ] && [ ! -f "$(EXTRA_VARS_FILE)" ]; then \
-		echo "Error: Extra vars file not found at $(EXTRA_VARS_FILE)"; \
-		exit 1; \
+	@if [ -n "$(EXTRA_VARS_FILE)" ]; then \
+		echo "Extra vars file: $(if $(wildcard $(EXTRA_VARS_FILE)),found [$(EXTRA_VARS_FILE)],not found)"; \
+		if [ ! -f "$(EXTRA_VARS_FILE)" ]; then \
+			echo "Error: Extra vars file not found at $(EXTRA_VARS_FILE)"; \
+			exit 1; \
+		fi; \
+	else \
+		echo "Extra vars file: not specified"; \
 	fi
+	@echo "All required files found."
 
 variables: ## Show current variables configuration
 	@echo "Environment: [$(ENV)]"
