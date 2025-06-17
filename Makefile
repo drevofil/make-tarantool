@@ -27,7 +27,7 @@ EXTRA_VOLUMES           ?=
 EXTRA_VARS_FILE         ?=  # Путь к JSON-файлу с дополнительными переменными
 
 ## Helpers
-DOCKER_CMD := docker run --network host -it --rm
+DOCKER_CMD := docker run --net=host -it --rm
 VOLUMES     := -v $(PATH_TO_PRIVATE_KEY):/ansible/.ssh/id_private_key:Z \
                 -v $(PATH_TO_INVENTORY):/ansible/inventories/hosts.yml:Z 
 MOUNT_PACKAGE     := -v $(PATH_TO_PACKAGE):/ansible/packages/$(PACKAGE_NAME):Z
@@ -41,6 +41,7 @@ define BASE_EXTRA_VARS
     "cartridge_package_path":"/ansible/packages/$(PACKAGE_NAME)", \
     "ansible_ssh_private_key_file":"/ansible/.ssh/id_private_key", \
     "super_user":"$(SUPER_USER_NAME)", \
+	"ansible_user":"$(SUPER_USER_NAME)", \
     "tarantool_shared_become_user":"$(TARANTOOL_BECOME_USER)" \
 }'
 endef
@@ -70,6 +71,19 @@ env-prepare: check-env ## Run Ansible env prep playbook (always with root privil
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
 		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/env_prepare.yml
 
+etcd: check-env ## Run Ansible deployment playbook
+	@echo "Starting deployment for [$(ENV)] environment..."
+	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
+	@echo "Using extra vars file: $(EXTRA_VARS_FILE)"
+	$(DOCKER_CMD) \
+		$(VOLUMES) \
+		$(MOUNT_PACKAGE) \
+		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
+		$(EXTRA_VOLUMES) \
+		$(ENV_VARS) \
+		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
+		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/etcd_3_0.yml
+
 deploy: check-env ## Run Ansible deployment playbook
 	@echo "Starting deployment for [$(ENV)] environment..."
 	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
@@ -81,7 +95,20 @@ deploy: check-env ## Run Ansible deployment playbook
 		$(EXTRA_VOLUMES) \
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
-		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/deploy.yml
+		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/install_3_0.yml
+
+uninstall: check-env ## Run Ansible uninstall playbook
+	@echo "Starting deployment for [$(ENV)] environment..."
+	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
+	@echo "Using extra vars file: $(EXTRA_VARS_FILE)"
+	$(DOCKER_CMD) \
+		$(VOLUMES) \
+		$(MOUNT_PACKAGE) \
+		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
+		$(EXTRA_VOLUMES) \
+		$(ENV_VARS) \
+		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
+		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/uninstall.yml
 
 help: ## Show this help message
 	@echo "Available environments:"
@@ -151,7 +178,7 @@ env-template: ## Create template environment file
 	@echo "PATH_TO_PACKAGE=$(CURDIR)/packages/\$${PACKAGE_NAME}" >> .env.example
 	@echo "" >> .env.example
 	@echo "# Optional extra parameters" >> .env.example
-	@echo "# EXTRA_VOLUMES=-v /host/config:/ansible/config:Z -v /host/certs:/ansible/certs:Z" >> .env.example
+	@echo "# EXTRA_VOLUMES=-v ./centos.yml:/ansible/playbooks/prepare/os/centos.yml:Z" >> .env.example
 	@echo "# EXTRA_VARS_FILE=/path/to/extra_vars.json" >> .env.example
 	@echo "# Example extra_vars.json content" >> .env.example
 	@echo "# {\"custom_option\": \"value\"}" >> .env.example

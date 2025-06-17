@@ -35,7 +35,7 @@ all:
             - roles.metrics-export
             - dictionary.roles.storage
           memtx:
-            memory: 536870912 #512MiB
+            memory: 536870912			
           roles_cfg:
             roles.expirationd: []
     storage-1:
@@ -51,15 +51,15 @@ all:
       hosts:
         router-1:
       vars:
-        replicaset_alias: router-1
-    tarantooldb_test_env_1:
+        replicaset_alias: router-1	
+    tarantooldb_1:
       hosts:
         storage-1-1:
           iproto:
             listen:
-            - uri: 10.77.15.111:5401
+            - uri: 192.168.0.105:3301
             advertise:
-              client: 10.77.15.111:5401
+              client: 192.168.0.105:3301
           roles_cfg:
             roles.metrics-export:
               http:
@@ -70,33 +70,35 @@ all:
         router-1:
           iproto:
             listen:
-            - uri: 10.77.15.111:5405
+            - uri: 192.168.0.105:3310
             advertise:
-              client: 10.77.15.111:5405
+              client: 192.168.0.105:3310
           roles_cfg:
             roles.metrics-export:
               http:
-                - listen: 8185
+                - listen: 8190
                   endpoints:
                     - path: /metrics
                       format: prometheus
       vars:
-        ansible_host: 10.77.15.111
-        ansible_user: abaydin
+        ansible_host: 192.168.0.105
+        
   vars:
+    cartridge_cluster_cookie: tarantooldbcookie
     ansible_ssh_common_args: -o IdentitiesOnly=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no
     ansible_ssh_retries: 5
     cartridge_app_name: tarantooldb
     tarantool_3_0_version_support: true
-    tarantool_etcd_host: 10.77.15.111
-    etcd_host: 10.77.15.111
-    #etcd_cluster_prefix: /cluster
-    cartridge_failover_params:
-      prefix: /cluster
-      state_provider: "etcd2"
-      etcd2_params:
-        endpoints:
-          - "http://10.77.15.111:2379"
+    tarantool_config_etcd_endpoints:
+      - http://192.168.0.105:2379
+    etcd_host: 192.168.0.105
+
+    # cartridge_failover_params:
+    #   prefix: /cluster
+    #   state_provider: "etcd2"
+    #   etcd2_params:
+    #     endpoints:
+    #       - 192.168.0.105:2379
     tarantool_config_global:
       iproto:
         advertise:
@@ -109,7 +111,8 @@ all:
           replicator:
             password: 'replicator_password'
             roles:
-            - super
+            - replication
+            - dictionary_api_executor
           storage:
             password: 'storage_password'
             roles:
@@ -122,6 +125,3 @@ all:
             password: 'secret'
             roles:
             - super
-          admin-tcm:
-            password: 'you-know-who'
-            roles: ['super']

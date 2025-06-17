@@ -1,0 +1,17 @@
+---
+- name: Install modules
+  ansible.builtin.package:
+    name: "{{ item }}"
+    state: present
+    update_cache: true
+  loop:
+    - cronie
+    - logrotate
+    - gdb
+    - telnet
+
+- name: Enable systemd-logind service
+  ansible.builtin.systemd:
+    name: systemd-logind
+    state: started
+    enabled: true
