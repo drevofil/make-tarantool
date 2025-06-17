@@ -8,3 +8,17 @@ clusters-manager:
     ansible_host: 192.168.0.105
     ansible_user: admin
     ansible_ssh_common_args: -o IdentitiesOnly=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no
+    tcm_initial_clusters:
+      - name: Tarantool cluster
+        description: Example cluster
+        storage-connection:
+          provider: etcd
+          etcd-connection:
+            endpoints:
+              - http://192.168.0.105:2379
+            username: ""
+            password: ""
+            prefix: "/tarantool/tarantooldb"
+        tarantool-connection:
+          username: "client"
+          password: "secret"
