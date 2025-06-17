@@ -1,0 +1,127 @@
+---
+all:
+  children:
+    ROUTERS:
+      children:
+        router-1:
+      vars:
+        tarantool_config_group:
+          app:
+            module: app.vshard_bootstrapper
+          sharding:
+            roles: [router]
+          roles:
+            - roles.crud-router
+            - roles.metrics-export
+            - dictionary.roles.router
+          roles_cfg:
+            roles.crud-router:
+              stats: true
+              stats_driver: metrics
+              stats_quantiles: true
+              stats_quantile_tolerated_error: 0.001
+              stats_quantile_age_buckets_count: 5
+              stats_quantile_max_age_time: 180
+    STORAGES:
+      children:
+        storage-1:
+      vars:
+        tarantool_config_group:
+          sharding:
+            roles: [storage]
+          roles:
+            - roles.crud-storage
+            - roles.expirationd
+            - roles.metrics-export
+            - dictionary.roles.storage
+          memtx:
+            memory: 536870912 #512MiB
+          roles_cfg:
+            roles.expirationd: []
+    storage-1:
+      hosts:
+        storage-1-1:
+      vars:
+        replicaset_alias: storage-1
+        tarantool_config_replicaset:
+          bootstrap_leader: storage-1-1
+          replication:
+            bootstrap_strategy: config
+    router-1:
+      hosts:
+        router-1:
+      vars:
+        replicaset_alias: router-1
+    tarantooldb_test_env_1:
+      hosts:
+        storage-1-1:
+          iproto:
+            listen:
+            - uri: 10.77.15.111:5401
+            advertise:
+              client: 10.77.15.111:5401
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8181
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+        router-1:
+          iproto:
+            listen:
+            - uri: 10.77.15.111:5405
+            advertise:
+              client: 10.77.15.111:5405
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8185
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+      vars:
+        ansible_host: 10.77.15.111
+        ansible_user: abaydin
+  vars:
+    ansible_ssh_common_args: -o IdentitiesOnly=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no
+    ansible_ssh_retries: 5
+    cartridge_app_name: tarantooldb
+    tarantool_3_0_version_support: true
+    tarantool_etcd_host: 10.77.15.111
+    etcd_host: 10.77.15.111
+    #etcd_cluster_prefix: /cluster
+    cartridge_failover_params:
+      prefix: /cluster
+      state_provider: "etcd2"
+      etcd2_params:
+        endpoints:
+          - "http://10.77.15.111:2379"
+    tarantool_config_global:
+      iproto:
+        advertise:
+          peer:
+            login: replicator
+          sharding:
+            login: storage
+      credentials:
+        users:
+          replicator:
+            password: 'replicator_password'
+            roles:
+            - super
+          storage:
+            password: 'storage_password'
+            roles:
+            - sharding
+          admin:
+            password: 'secret-cluster-cookie'
+            roles:
+            - super
+          client:
+            password: 'secret'
+            roles:
+            - super
+          admin-tcm:
+            password: 'you-know-who'
+            roles: ['super']
