@@ -174,7 +174,7 @@ env-template: ## Create template environment file
 	@echo "Creating template: .env.example"
 	@echo "# Deployment configuration for example environment" > .env.example
 	@echo "IMAGE_NAME=ansible-tarantool-enterprise" >> .env.example
-	@echo "DEPLOY_TOOL_VERSION_TAG=latest" >> .env.example
+	@echo "DEPLOY_TOOL_VERSION_TAG=1.10.2" >> .env.example
 	@echo "SUPER_USER_NAME=admin" >> .env.example
 	@echo "PACKAGE_NAME=./tarantooldb-2.2.1.linux.x86_64.tar.gz" >> .env.example
 	@echo "PATH_TO_PRIVATE_KEY=/home/.ssh/id_rsa" >> .env.example
