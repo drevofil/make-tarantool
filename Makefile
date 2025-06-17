@@ -39,6 +39,7 @@ PLAYBOOK_CMD:= ansible-playbook -i /ansible/inventories/hosts.yml
 define BASE_EXTRA_VARS
 --extra-vars '{ \
     "cartridge_package_path":"/ansible/packages/$(PACKAGE_NAME)", \
+	"tcm_package_path":"/ansible/packages/$(PACKAGE_NAME)", \
     "ansible_ssh_private_key_file":"/ansible/.ssh/id_private_key", \
     "super_user":"$(SUPER_USER_NAME)", \
 	"ansible_user":"$(SUPER_USER_NAME)", \
@@ -102,6 +103,19 @@ install_3_0: ## Run Ansible install_3_0.yml playbook
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
 		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/install_3_0.yml
+
+install_tcm: ## Run Ansible install_3_0.yml playbook
+	@echo "Starting deployment for [$(ENV)] environment..."
+	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
+	@echo "Using extra vars file: $(EXTRA_VARS_FILE)"
+	$(DOCKER_CMD) \
+		$(VOLUMES) \
+		$(MOUNT_PACKAGE) \
+		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
+		$(EXTRA_VOLUMES) \
+		$(ENV_VARS) \
+		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
+		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/tcm/install.yml
 
 uninstall: ## Run Ansible uninstall.yml playbook
 uninstall: check-env
@@ -191,3 +205,7 @@ deploy-tdb: ## Deploy TarantoolDB cluster
 deploy-tdb: check-env\
 			etcd_3_0 \
 			install_3_0
+
+deploy-tcm: ## Deploy TarantoolDB cluster
+deploy-tcm: check-env\
+			install_tcm

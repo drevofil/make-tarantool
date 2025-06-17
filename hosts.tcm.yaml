@@ -1,0 +1,10 @@
+clusters-manager:
+  hosts:
+    tcm:
+      tcm_host: 192.168.0.105
+      tcm_port: 8888
+      tcm_etcd_host: 192.168.0.105
+  vars:
+    ansible_host: 192.168.0.105
+    ansible_user: admin
+    ansible_ssh_common_args: -o IdentitiesOnly=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no
