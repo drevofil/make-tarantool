@@ -1,4 +1,3 @@
-```markdown
 # Ansible-based Tarantool Enterprise Deployment Tool
 
 Этот проект предоставляет Makefile для удобного развертывания Tarantool Enterprise с использованием Ansible Tarantool Enteprise в Docker-контейнере.
@@ -36,12 +35,14 @@ sudo make deploy-tdb ENV=dev
 ```bash
 # Список доступных окружений
 make environments
+make envs
 
 # Создать шаблон файла окружения
 make env-template
 
 # Показать текущие переменные
 make variables ENV=dev
+make vars
 ```
 
 ### Подготовка и развертывание
@@ -63,6 +64,13 @@ make check-env ENV=dev
 
 # Показать справку по всем командам
 make help
+
+# Сгенерировать конфигурацию с эндпоинтами метрик для Prometheus. Конфиг появится в текущем каталоге с именем prometheus_tarantool.yml
+sudo make gen-prometheus ENV=dev
+
+# Получить эндпоинты для каждого инстанта Tarantool. Список появится в текущем каталоге с именем endpoints.txt
+ sudo make get-endpoints ENV=dev
+
 ```
 
 ## Структура файлов окружения
@@ -152,4 +160,3 @@ sudo make uninstall ENV=dev
 
 - Все команды можно выполнять с `ENV=<name>` для выбора окружения
 - Используйте `make help` для просмотра всех доступных команд
-```
