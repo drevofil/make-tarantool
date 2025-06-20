@@ -248,3 +248,11 @@ get-endpoints: check-env
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
 		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/custom_steps/get-endpoints.yaml
 	@mv endpoints.txt endpoints-$(ENV).txt
+
+monitoring-install: ##Deploy monitoring example
+monitoring-install: 
+	@sudo docker compose --project-directory monitoring up -d
+
+monitoring-remove: ##Deploy monitoring example
+monitoring-remove: 
+	@sudo docker compose --project-directory monitoring down -v --remove-orphans

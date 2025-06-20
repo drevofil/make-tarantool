@@ -73,6 +73,18 @@ sudo make gen-prometheus ENV=dev
 
 ```
 
+### Мониторинг
+```bash
+# Поднять на локальном хосте docker compose проект для мониторинга (требует наличие docker compose)
+# Заполнить файл monitoring/prometheus.yml (например, внести конфиг из ранее созданного prometheus-tarantool-$ENV.yml)
+cp prometheus-tarantool-$ENV.yml monitoring/prometheus.yml
+sudo make monitoring-install
+
+# Удалить мониторинг
+sudo make monitoring-remove
+
+```
+
 ## Структура файлов окружения
 
 Файлы окружения должны называться `.env.<name>` (например, `.env.prod`). Пример содержимого:
