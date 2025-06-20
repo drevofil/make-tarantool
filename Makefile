@@ -209,3 +209,8 @@ deploy-tdb: check-env\
 deploy-tcm: ## Deploy TarantoolDB cluster
 deploy-tcm: check-env\
 			install_tcm
+
+vars: ## Same as variables
+vars: variables
+envs: ## Same as environments
+envs: environments
