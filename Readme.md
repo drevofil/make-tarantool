@@ -65,10 +65,10 @@ make check-env ENV=dev
 # Показать справку по всем командам
 make help
 
-# Сгенерировать конфигурацию с эндпоинтами метрик для Prometheus. Конфиг появится в текущем каталоге с именем prometheus_tarantool.yml
+# Сгенерировать конфигурацию с эндпоинтами метрик для Prometheus. Конфиг появится в текущем каталоге с именем prometheus-tarantool-$ENV.yml
 sudo make gen-prometheus ENV=dev
 
-# Получить эндпоинты для каждого инстанта Tarantool. Список появится в текущем каталоге с именем endpoints.txt
+# Получить эндпоинты для каждого инстанта Tarantool. Список появится в текущем каталоге с именем endpoints-$ENV.txt
  sudo make get-endpoints ENV=dev
 
 ```

@@ -230,6 +230,7 @@ gen-prometheus: check-env
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
 		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/custom_steps/generate-prometheus-config.yaml
+	@mv prometheus_tarantool.yml prometheus-tarantool-$(ENV).yml 
 
 get-endpoints: ## Run custom_steps/get-endpoints.yaml playbook
 get-endpoints: check-env
@@ -246,3 +247,4 @@ get-endpoints: check-env
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
 		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/custom_steps/get-endpoints.yaml
+	@mv endpoints.txt endpoints-$(ENV).txt
