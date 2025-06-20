@@ -1,0 +1,45 @@
+---
+- name: Gather advertise.client endpoints
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Extract advertise.client URLs
+      set_fact:
+        advertise_url: "{{ hostvars[inventory_hostname].iproto.advertise.client }}"
+      when: 
+        - "'ROUTERS' in group_names or 'STORAGES' in group_names"
+        - hostvars[inventory_hostname].iproto is defined
+        - hostvars[inventory_hostname].iproto.advertise is defined
+        - hostvars[inventory_hostname].iproto.advertise.client is defined
+
+- name: Generate endpoints file
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Build endpoints list
+      set_fact:
+        endpoints_list: []
+      run_once: true
+
+    - name: Collect endpoints from routers and storages
+      set_fact:
+        endpoints_list: "{{ endpoints_list + [item] }}"
+      loop: "{{ query('inventory_hostnames', 'all') }}"
+      loop_control:
+        loop_var: host
+      vars:
+        item: "{{ host }}: {{ hostvars[host].advertise_url | default('') }}"
+      when: 
+        - hostvars[host].advertise_url is defined
+      run_once: true
+
+    - name: Save endpoints to file
+      copy:
+        dest: "/tmp/get/endpoints.txt"
+        mode: 0666
+        content: |
+          {% for endpoint in endpoints_list %}
+          {{ endpoint }}
+          {% endfor %}
+      run_once: true

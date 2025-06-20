@@ -104,7 +104,7 @@ install_3_0: ## Run Ansible install_3_0.yml playbook
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
 		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/install_3_0.yml
 
-install_tcm: ## Run Ansible install_3_0.yml playbook
+install_tcm: ## Run Ansible tcm/install.yml playbook
 	@echo "Starting deployment for [$(ENV)] environment..."
 	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
 	@echo "Using extra vars file: $(EXTRA_VARS_FILE)"
@@ -206,7 +206,7 @@ deploy-tdb: check-env\
 			etcd_3_0 \
 			install_3_0
 
-deploy-tcm: ## Deploy TarantoolDB cluster
+deploy-tcm: ## Deploy Tarantool Cluster Manager
 deploy-tcm: check-env\
 			install_tcm
 
@@ -214,3 +214,35 @@ vars: ## Same as variables
 vars: variables
 envs: ## Same as environments
 envs: environments
+
+gen-prometheus: ## Run custom_steps/generate-prometheus-config.yaml playbook
+gen-prometheus: check-env
+	@echo "Starting deployment for [$(ENV)] environment..."
+	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
+	@echo "Using extra vars file: $(EXTRA_VARS_FILE)"
+	$(DOCKER_CMD) \
+		$(VOLUMES) \
+		$(MOUNT_PACKAGE) \
+		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
+		$(EXTRA_VOLUMES) \
+		-v ./custom_steps/generate-prometheus-config.yaml:/ansible/playbooks/custom_steps/generate-prometheus-config.yaml \
+		-v $(shell pwd):/tmp/get:Z \
+		$(ENV_VARS) \
+		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
+		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/custom_steps/generate-prometheus-config.yaml
+
+get-endpoints: ## Run custom_steps/get-endpoints.yaml playbook
+get-endpoints: check-env
+	@echo "Starting deployment for [$(ENV)] environment..."
+	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
+	@echo "Using extra vars file: $(EXTRA_VARS_FILE)"
+	$(DOCKER_CMD) \
+		$(VOLUMES) \
+		$(MOUNT_PACKAGE) \
+		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
+		$(EXTRA_VOLUMES) \
+		-v ./custom_steps/get-endpoints.yaml:/ansible/playbooks/custom_steps/get-endpoints.yaml \
+		-v $(shell pwd):/tmp/get:Z \
+		$(ENV_VARS) \
+		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
+		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/custom_steps/get-endpoints.yaml

@@ -1,0 +1,48 @@
+---
+- name: Gather metrics endpoints
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Extract metrics endpoints
+      set_fact:
+        has_metrics: true
+        metrics_endpoint: "{{ ansible_host }}:{{ metrics_port }}"
+      vars:
+        metrics_port: |-
+          {%- set http_cfg = hostvars[inventory_hostname].get('roles_cfg', {}).get('roles.metrics-export', {}).get('http', []) | first -%}
+          {{- http_cfg.listen | default(omit) -}}
+      when: 
+        - "'roles.metrics-export' in hostvars[inventory_hostname].get('roles_cfg', {})"
+        - metrics_port is defined
+
+- name: Generate Prometheus configuration
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: no
+  tasks:
+    - name: Collect all endpoints
+      set_fact:
+        all_endpoints: "{{ groups.all | map('extract', hostvars) | selectattr('has_metrics', 'defined') | map(attribute='metrics_endpoint') | list }}"
+      run_once: true
+
+    - name: Create Prometheus config
+      copy:
+        dest: "/tmp/get/prometheus_tarantool.yml"
+        mode: 0666
+        content: |
+          # Prometheus configuration for Tarantool metrics
+          
+          global:
+            scrape_interval: 15s
+            evaluation_interval: 15s
+
+          scrape_configs:
+            - job_name: 'tarantool'
+              metrics_path: '/metrics'
+              static_configs:
+                - targets:
+                  {% for endpoint in all_endpoints %}
+                  - '{{ endpoint }}'
+                  {% endfor %}
+      run_once: true
