@@ -3,3 +3,4 @@
 hosts-*
 prometheus-tarantool-*
 endpoints-*
+push
