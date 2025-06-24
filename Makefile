@@ -117,8 +117,8 @@ install_tcm: ## Run Ansible tcm/install.yml playbook
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
 		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/tcm/install.yml
 
-uninstall: ## Run Ansible uninstall.yml playbook
-uninstall: check-env
+uninstall-tarantool: ## Run Ansible uninstall.yml playbook
+uninstall-tarantool: check-env
 	@echo "Starting deployment for [$(ENV)] environment..."
 	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
 	@echo "Using extra vars file: $(EXTRA_VARS_FILE)"
@@ -130,6 +130,20 @@ uninstall: check-env
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
 		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/uninstall.yml
+
+uninstall-tcm: ## Run Ansible uninstall.yml playbook with --tags tcm
+uninstall-tcm: check-env
+	@echo "Starting deployment for [$(ENV)] environment..."
+	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
+	@echo "Using extra vars file: $(EXTRA_VARS_FILE)"
+	$(DOCKER_CMD) \
+		$(VOLUMES) \
+		$(MOUNT_PACKAGE) \
+		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
+		$(EXTRA_VOLUMES) \
+		$(ENV_VARS) \
+		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
+		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/uninstall.yml  --tags tcm
 
 help: ## Print help
 	$(PRINT_HELP)
@@ -256,3 +270,20 @@ monitoring-install:
 monitoring-remove: ##Deploy monitoring example
 monitoring-remove: 
 	@sudo docker compose --project-directory monitoring down -v --remove-orphans
+
+install-etcd: ## Run custom_steps/etcd/etcd-install.yaml playbook
+install-etcd: check-env
+	@echo "Starting deployment for [$(ENV)] environment..."
+	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
+	@echo "Using extra vars file: $(EXTRA_VARS_FILE)"
+	$(DOCKER_CMD) \
+		$(VOLUMES) \
+		$(MOUNT_PACKAGE) \
+		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
+		$(EXTRA_VOLUMES) \
+		-v ./custom_steps/etcd:/ansible/playbooks/custom_steps/etcd \
+		-v $(shell pwd):/tmp/get:Z \
+		$(ENV_VARS) \
+		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
+		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/custom_steps/etcd/etcd-install.yaml
+	# @mv endpoints.txt endpoints-$(ENV).txt

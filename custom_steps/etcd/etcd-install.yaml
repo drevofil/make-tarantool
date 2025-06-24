@@ -1,0 +1,114 @@
+---
+- name: Download etcd archive
+  hosts: localhost
+  connection: local
+  vars:
+    etcd_url: "https://github.com/etcd-io/etcd/releases/download/{{ etcd_version }}/etcd-{{ etcd_version }}-linux-amd64.tar.gz"
+  tasks:
+    - name: Create download directory
+      ansible.builtin.file:
+        path: /tmp
+        state: directory
+        
+    - name: Download etcd
+      ansible.builtin.get_url:
+        url: "{{ etcd_url }}"
+        dest: "{{ etcd_local_archive }}"
+      when: not ansible.builtin.lookup('file', etcd_local_archive, errors='ignore')
+
+- name: Configure and deploy etcd
+  hosts: etcd_cluster
+  become: true
+  tasks:
+    - name: Copy etcd archive
+      ansible.builtin.copy:
+        src: "{{ etcd_local_archive }}"
+        dest: "/tmp"
+        mode: '0644'
+
+    - name: Create installation directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+      loop:
+        - "{{ etcd_install_dir }}"
+        - "{{ etcd_config_dir }}"
+        - "{{ etcd_data_dir }}"
+
+    - name: Create TLS directory
+      ansible.builtin.file:
+        path: "{{ etcd_tls_dir }}"
+        state: directory
+        mode: '0700'
+      when: etcd_enable_tls
+
+    - name: Copy TLS files
+      ansible.builtin.copy:
+        src: "tls/{{ item }}"
+        dest: "{{ etcd_tls_dir }}/{{ item }}"
+        mode: '0600'
+      loop:
+        - "{{ etcd_ca_cert }}"
+        - "{{ etcd_server_cert }}"
+        - "{{ etcd_server_key }}"
+        - "{{ etcd_client_cert }}"
+        - "{{ etcd_client_key }}"
+      when: etcd_enable_tls
+
+    - name: Extract etcd binaries
+      ansible.builtin.unarchive:
+        src: "/tmp/etcd-{{ etcd_version }}-linux-amd64.tar.gz"
+        dest: "{{ etcd_install_dir }}"
+        remote_src: yes
+        extra_opts: ["--strip-components=1"]
+        creates: "{{ etcd_install_dir }}/etcd"
+
+    - name: Create symlinks
+      ansible.builtin.file:
+        src: "{{ etcd_install_dir }}/{{ item }}"
+        dest: "/usr/local/bin/{{ item }}"
+        state: link
+      loop:
+        - etcd
+        - etcdctl
+
+    - name: Configure etcd service
+      ansible.builtin.template:
+        src: etcd.service.j2
+        dest: /etc/systemd/system/etcd.service
+        mode: '0644'
+      notify: restart etcd
+
+    - name: Start etcd service
+      ansible.builtin.systemd:
+        name: etcd
+        state: started
+        enabled: yes
+
+  handlers:
+    - name: restart etcd
+      ansible.builtin.systemd:
+        name: etcd
+        state: restarted
+
+- name: Gather cluster endpoints
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Compile endpoints list
+      set_fact:
+        cluster_endpoints: |
+          {% set endpoints = [] %}
+          {% for host in groups['etcd_cluster'] %}
+          {%   set protocol = 'https' if hostvars[host].etcd_enable_tls else 'http' %}
+          {%   set client_url = protocol + '://' + hostvars[host].ansible_host + ':' + hostvars[host].etcd_client_port | string %}
+          {%   do endpoints.append(client_url) %}
+          {% endfor %}
+          {{ endpoints | join(',') }}
+
+    - name: Save endpoints to file
+      ansible.builtin.copy:
+        content: "{{ cluster_endpoints }}"
+        dest: "/tmp/get/etcd-endpoints.txt"
+        mode: '0666'

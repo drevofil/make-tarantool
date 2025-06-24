@@ -4,3 +4,4 @@ hosts-*
 prometheus-tarantool-*
 endpoints-*
 push
+hosts.tcm*

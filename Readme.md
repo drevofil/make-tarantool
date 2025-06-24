@@ -1,4 +1,4 @@
-# Ansible-based Tarantool Enterprise Deployment Tool
+# Make-based Ansible Tarantool Enterprise Deployment Tool
 
 Этот проект предоставляет Makefile для удобного развертывания Tarantool Enterprise с использованием Ansible Tarantool Enteprise в Docker-контейнере.
 
@@ -6,7 +6,7 @@
 
 1. Docker установленный и запущенный
 2. SSH-ключ для доступа к целевым серверам
-3. Файл инвентаризации Ansible (в формате YAML)
+3. Файл инвентаря Ansible (в формате YAML)
 4. Архив с продуктом Tarantool Enterprise
 
 ## Быстрый старт
@@ -42,7 +42,7 @@ make env-template
 
 # Показать текущие переменные
 make variables ENV=dev
-make vars
+make vars ENV=dev
 ```
 
 ### Подготовка и развертывание
@@ -53,8 +53,14 @@ sudo make env_prepare ENV=prod
 # Установка Tarantool DB
 sudo make deploy-tdb ENV=staging
 
+# Установка Tarantool Cluster Manager
+sudo make deploy-tcm ENV=tcm-staging
+
 # Удаление Tarantool DB
-sudo make uninstall ENV=dev
+sudo make uninstall-tarantool ENV=dev
+
+# Удаление Tarantool Cluster Manager
+sudo make uninstall-tcm ENV=tcm-staging
 ```
 
 ### Вспомогательные команды
@@ -69,7 +75,7 @@ make help
 sudo make gen-prometheus ENV=dev
 
 # Получить эндпоинты для каждого инстанта Tarantool. Список появится в текущем каталоге с именем endpoints-$ENV.txt
- sudo make get-endpoints ENV=dev
+sudo make get-endpoints ENV=dev
 
 ```
 
@@ -137,36 +143,6 @@ EXTRA_VOLUMES=-v ./centos.yml:/ansible/playbooks/prepare/os/centos.yml:Z
 
 3. **Безопасность**:
    - Файлы монтируются в контейнер в режиме read-only
-
-## Пример рабочего процесса
-
-1. Создаем окружение для разработки:
-```bash
-make env-template
-cp .env.example .env.dev
-nano .env.dev  # Редактируем параметры
-```
-
-2. Проверяем конфигурацию:
-```bash
-make check-env ENV=dev
-make variables ENV=dev
-```
-
-3. Подготавливаем серверы:
-```bash
-sudo make env_prepare ENV=dev
-```
-
-4. Разворачиваем приложение Tarantool DB:
-```bash
-sudo make deploy-tdb ENV=dev
-```
-
-5. При необходимости удаляем:
-```bash
-sudo make uninstall ENV=dev
-```
 
 ## Советы
 
