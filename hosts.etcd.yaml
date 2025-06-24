@@ -1,0 +1,33 @@
+all:
+  vars:
+    etcd_version: "v3.5.11"
+    etcd_local_archive: "/tmp/etcd-{{ etcd_version }}-linux-amd64.tar.gz"
+    etcd_install_dir: "/opt/etcd"
+    etcd_config_dir: "/etc/etcd"
+    etcd_data_dir: "/var/lib/etcd"
+    etcd_client_port: 2379
+    etcd_peer_port: 2380
+    etcd_cluster_token: "etcd-cluster-token"
+    etcd_enable_v2: false
+    
+    # TLS settings
+    etcd_enable_tls: false
+    etcd_tls_dir: "{{ etcd_config_dir }}/tls"
+    etcd_ca_cert: "ca.crt"
+    etcd_server_cert: "server.crt"
+    etcd_server_key: "server.key"
+    etcd_client_cert: "client.crt"
+    etcd_client_key: "client.key"
+
+  children:
+    etcd_cluster:
+      hosts:
+        etcd-node1:
+          ansible_host: 192.168.111.29
+          etcd_name: "node1"
+        etcd-node2:
+          ansible_host: 192.168.111.30
+          etcd_name: "node2"
+        etcd-node3:
+          ansible_host: 192.168.111.32
+          etcd_name: "node2"

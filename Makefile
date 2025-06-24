@@ -119,7 +119,7 @@ install_tcm: ## Run Ansible tcm/install.yml playbook
 
 uninstall-tarantool: ## Run Ansible uninstall.yml playbook
 uninstall-tarantool: check-env
-	@echo "Starting deployment for [$(ENV)] environment..."
+	@echo "Starting uninstall for [$(ENV)] environment..."
 	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
 	@echo "Using extra vars file: $(EXTRA_VARS_FILE)"
 	$(DOCKER_CMD) \
@@ -133,7 +133,7 @@ uninstall-tarantool: check-env
 
 uninstall-tcm: ## Run Ansible uninstall.yml playbook with --tags tcm
 uninstall-tcm: check-env
-	@echo "Starting deployment for [$(ENV)] environment..."
+	@echo "Starting uninstall for [$(ENV)] environment..."
 	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
 	@echo "Using extra vars file: $(EXTRA_VARS_FILE)"
 	$(DOCKER_CMD) \
@@ -191,11 +191,14 @@ variables: ## Show current variables configuration
 	@echo "  TARANTOOL_BECOME_USER   = $(TARANTOOL_BECOME_USER)"
 	@echo "  EXTRA_VOLUMES           = $(EXTRA_VOLUMES)"
 	@echo "  EXTRA_VARS_FILE         = $(EXTRA_VARS_FILE)"
+vars: ## Same as variables
+vars: variables
 
-# Add environment targets
 environments: ## List available environments
 	@echo "Available environments:"
 	@ls -1 .env.* 2>/dev/null | sed 's/\.env\.\(.*\)/  \1/' || echo "  (no environment files found)"
+envs: ## Same as environments
+envs: environments
 
 # Example file creation
 env-template: ## Create template environment file
@@ -223,11 +226,6 @@ deploy-tdb: check-env\
 deploy-tcm: ## Deploy Tarantool Cluster Manager
 deploy-tcm: check-env\
 			install_tcm
-
-vars: ## Same as variables
-vars: variables
-envs: ## Same as environments
-envs: environments
 
 gen-prometheus: ## Run custom_steps/generate-prometheus-config.yaml playbook
 gen-prometheus: check-env
