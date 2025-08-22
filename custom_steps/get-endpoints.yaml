@@ -7,7 +7,7 @@
       set_fact:
         advertise_url: "{{ hostvars[inventory_hostname].iproto.advertise.client }}"
       when: 
-        - "'ROUTERS' in group_names or 'STORAGES' in group_names"
+        - "'core' in group_names or 'router' in group_names or 'STORAGES' in group_names or 'ROUTERS' in group_names"
         - hostvars[inventory_hostname].iproto is defined
         - hostvars[inventory_hostname].iproto.advertise is defined
         - hostvars[inventory_hostname].iproto.advertise.client is defined

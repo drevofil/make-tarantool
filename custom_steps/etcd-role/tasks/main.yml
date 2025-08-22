@@ -1,0 +1,69 @@
+- name: Check if uninstall is requested
+  include_tasks: uninstall.yml
+  when: etcd_uninstall | default(false)
+
+- name: Abort if uninstall is requested
+  meta: end_play
+  when: etcd_uninstall | default(false)
+
+- name: Set protocol based on TLS
+  set_fact:
+    etcd_protocol: "{{ 'https' if etcd_tls_enabled else 'http' }}"
+
+- name: Generate URLs based on protocol
+  set_fact:
+    etcd_listen_peer_urls: "{{ etcd_protocol }}://{{ etcd_listen_peer_host }}:{{ etcd_peer_port }}"
+    etcd_listen_client_urls: "{{ etcd_protocol }}://{{ etcd_listen_client_host }}:{{ etcd_client_port }},http://127.0.0.1:{{ etcd_client_port }}"
+    etcd_advertise_client_urls: "{{ etcd_protocol }}://{{ etcd_advertise_client_host }}:{{ etcd_client_port }}"
+    etcd_advertise_peer_urls: "{{ etcd_protocol }}://{{ etcd_advertise_peer_host }}:{{ etcd_peer_port }}"
+
+- name: Generate initial cluster if not provided
+  set_fact:
+    etcd_initial_cluster: "{% for host in groups['etcd_cluster'] %}{{ hostvars[host].etcd_name | default(host) }}={{ 'https' if hostvars[host].etcd_tls_enabled | default(etcd_tls_enabled) else 'http' }}://{{ hostvars[host].ansible_host }}:{{ hostvars[host].etcd_peer_port | default(etcd_peer_port) }}{% if not loop.last %},{% endif %}{% endfor %}"
+  when: 
+    - etcd_initial_cluster == ""
+    - groups['etcd_cluster'] is defined
+
+# - name: Include OS-specific variables
+#   include_vars: "{{ ansible_os_family }}.yml"
+
+- name: Create etcd user and group
+  user:
+    name: "{{ etcd_user }}"
+    group: "{{ etcd_group }}"
+    system: yes
+    create_home: no
+  when: etcd_user != "root"
+
+- name: Create directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ etcd_user }}"
+    group: "{{ etcd_group }}"
+    mode: 0755
+  loop:
+    - "{{ etcd_data_dir }}"
+    - /etc/etcd/ssl
+
+- name: Include installation tasks
+  include_tasks: "install_{{ etcd_install_method }}.yml"
+
+- name: Include TLS setup
+  include_tasks: tls.yml
+  when: etcd_tls_enabled
+
+- name: Configure etcd
+  template:
+    src: etcd.yaml.j2
+    dest: /etc/etcd/etcd.yaml
+    owner: root
+    group: root
+    mode: 0644
+  notify: restart etcd
+
+- name: Ensure etcd is started
+  systemd:
+    name: etcd
+    state: started
+    enabled: yes

@@ -1,0 +1,40 @@
+- name: Create SSL directory on node
+  file:
+    path: /etc/etcd/ssl
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+  when: etcd_tls_enabled
+
+- name: Check if provided certificates exist on controller
+  stat:
+    path: "{{ etcd_tls_controller_certs_dir }}/{{ item }}"
+  register: provided_cert_files
+  delegate_to: localhost
+  loop:
+    - ca.pem
+    - server.pem
+    - server-key.pem
+  when: etcd_tls_enabled and etcd_tls_mode == 'provided'
+
+- name: Validate provided certificates
+  assert:
+    that:
+      - provided_cert_files.results | map(attribute='stat.exists') | list | unique == [true]
+    msg: "Not all certificate files exist in {{ etcd_tls_controller_certs_dir }} for provided mode"
+  when: etcd_tls_enabled and etcd_tls_mode == 'provided'
+
+- name: Copy provided TLS certificates to node
+  copy:
+    src: "{{ etcd_tls_controller_certs_dir }}/{{ item }}"
+    dest: "/etc/etcd/ssl/{{ item }}"
+    owner: root
+    group: root
+    mode: "{{ '0600' if 'key' in item else '0644' }}"
+  loop:
+    - ca.pem
+    - server.pem
+    - server-key.pem
+  when: etcd_tls_enabled and etcd_tls_mode == 'provided'
+  notify: reload certificates

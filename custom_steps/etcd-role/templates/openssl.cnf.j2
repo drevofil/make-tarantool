@@ -1,0 +1,24 @@
+[ req ]
+default_bits        = 2048
+prompt              = no
+default_md          = sha256
+distinguished_name  = dn
+req_extensions      = req_ext
+
+[ dn ]
+C                   = {{ etcd_tls_country }}
+ST                  = {{ etcd_tls_state }}
+L                   = {{ etcd_tls_locality }}
+O                   = {{ etcd_tls_org }}
+CN                  = {{ etcd_tls_common_name }}
+
+[ req_ext ]
+subjectAltName      = @alt_names
+
+[ alt_names ]
+DNS.1               = localhost
+IP.1                = 127.0.0.1
+{% for host in groups['etcd_cluster'] %}
+DNS.{{ loop.index + 1 }} = {{ hostvars[host].inventory_hostname }}
+IP.{{ loop.index + 1 }} = {{ hostvars[host].ansible_host }}
+{% endfor %}

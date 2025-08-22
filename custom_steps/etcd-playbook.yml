@@ -1,0 +1,9 @@
+# - hosts: etcd_servers
+#   become: yes
+#   roles:
+#     - role: etcd-role
+
+- hosts: etcd_cluster
+  become: yes
+  roles:
+    - role: etcd-role

@@ -5,3 +5,4 @@ prometheus-tarantool-*
 endpoints-*
 push
 hosts.tcm*
+custom_steps/etcd-role/files/*.tar.gz

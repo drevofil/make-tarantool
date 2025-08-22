@@ -1,0 +1,44 @@
+- name: Stop etcd service
+  systemd:
+    name: etcd
+    state: stopped
+    enabled: no
+  ignore_errors: yes
+
+- name: Remove etcd systemd unit
+  file:
+    path: /etc/systemd/system/etcd.service
+    state: absent
+  notify: reload systemd
+
+- name: Remove etcd configuration
+  file:
+    path: /etc/etcd
+    state: absent
+
+- name: Remove etcd data directory
+  file:
+    path: "{{ etcd_data_dir }}"
+    state: absent
+
+- name: Remove etcd binaries (archive installation)
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /usr/local/bin/etcd
+    - /usr/local/bin/etcdctl
+  when: etcd_install_method != 'package'
+
+- name: Remove etcd package (package installation)
+  package:
+    name: "{{ etcd_package_name }}"
+    state: absent
+  when: etcd_install_method == 'package'
+
+- name: Remove etcd user and group
+  user:
+    name: "{{ etcd_user }}"
+    state: absent
+    remove: yes
+  when: etcd_user != "root"

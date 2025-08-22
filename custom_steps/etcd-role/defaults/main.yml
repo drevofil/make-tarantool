@@ -1,0 +1,48 @@
+---
+etcd_install_method: archive #archive|package
+etcd_install_archive: remote #remote|local
+etcd_version: "3.5.0"
+etcd_user: etcd
+etcd_group: etcd
+etcd_data_dir: /var/lib/etcd
+
+# Archive settings
+etcd_archive_local_path: ""
+etcd_archive_remote_url: "https://github.com/etcd-io/etcd/releases/download/v{{ etcd_version }}/etcd-v{{ etcd_version }}-linux-amd64.tar.gz"
+etcd_archive_checksum: "sha256:https://github.com/etcd-io/etcd/releases/download/v{{ etcd_version }}/SHA256SUMS"
+
+# Package settings
+etcd_package_name: "etcd"
+etcd_repository_enable: false
+etcd_repository_apt_url: "deb https://example.com/etcd/deb {{ ansible_distribution_release }} main"
+etcd_repository_yum_url: "https://example.com/etcd/rpm/"
+etcd_repository_yum_gpgcheck: no
+etcd_repository_yum_gpgkey: "https://example.com/etcd/gpg"
+
+# Port settings
+etcd_client_port: 2379
+etcd_peer_port: 2380
+
+# Configuration
+etcd_name: "{{ inventory_hostname }}"
+etcd_listen_peer_host: "{{ ansible_host }}"
+etcd_listen_client_host: "{{ ansible_host }}"
+etcd_advertise_client_host: "{{ ansible_host }}"
+etcd_advertise_peer_host: "{{ ansible_host }}"
+etcd_initial_cluster: ""
+etcd_initial_cluster_state: new
+etcd_initial_cluster_token: etcd-cluster
+etcd_extra_config: {}
+
+# TLS Settings
+etcd_tls_enabled: true
+etcd_tls_mode: auto  # auto|provided
+etcd_tls_controller_certs_dir: "{{ playbook_dir }}/files/etcd-ssl"
+etcd_tls_ca_cert: /etc/etcd/ssl/ca.pem
+etcd_tls_cert: /etc/etcd/ssl/server.pem
+etcd_tls_key: /etc/etcd/ssl/server-key.pem
+etcd_auto_tls: true
+etcd_peer_auto_tls: true
+
+# Uninstall settings
+etcd_uninstall: false

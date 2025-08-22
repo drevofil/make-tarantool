@@ -1,0 +1,30 @@
+- name: Download etcd archive
+  get_url:
+    url: "{{ etcd_archive_remote_url }}"
+    dest: /tmp/etcd.tar.gz
+    checksum: "{{ etcd_archive_checksum }}"
+  when: etcd_install_archive == 'remote'
+
+- name: Copy local archive
+  copy:
+    src: "{{ etcd_archive_local_path }}"
+    dest: /tmp/etcd.tar.gz
+    mode: 0644
+  when: etcd_install_archive == 'local'
+
+- name: Extract archive
+  unarchive:
+    src: /tmp/etcd.tar.gz
+    dest: /usr/local/bin
+    remote_src: yes
+    owner: root
+    group: root
+    mode: 0755
+    extra_opts: ["--strip-components=1"]
+
+- name: Create systemd service
+  template:
+    src: etcd.service.j2
+    dest: /etc/systemd/system/etcd.service
+    mode: 0644
+  notify: reload systemd

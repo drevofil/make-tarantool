@@ -1,0 +1,35 @@
+- name: Install repository for etcd (if enabled)
+  block:
+    - name: Add etcd repository for Debian
+      apt_repository:
+        repo: "{{etcd_repository_apt_url}}"
+        state: present
+      when: ansible_os_family == "Debian" and etcd_repository_enable
+
+    - name: Add etcd repository for RedHat
+      yum_repository:
+        name: etcd
+        description: etcd repository
+        baseurl: "{{etcd_repository_yum_url}}"
+        gpgkey: "{{etcd_repository_yum_gpgkey}}"
+        gpgcheck: "{{etcd_repository_yum_gpgcheck}}"
+      when: ansible_os_family == "RedHat" and etcd_repository_enable
+  when: etcd_repository_enable
+
+- name: Install etcd package
+  package:
+    name: "{{ etcd_package_name }}"
+    state: present
+
+- name: Check if systemd unit exists
+  stat:
+    path: /usr/lib/systemd/system/etcd.service
+  register: etcd_systemd_unit
+
+- name: Create systemd service if not provided by package
+  template:
+    src: etcd.service.j2
+    dest: /etc/systemd/system/etcd.service
+    mode: 0644
+  when: not etcd_systemd_unit.stat.exists
+  notify: reload systemd

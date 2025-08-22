@@ -161,10 +161,14 @@ check-env: ## Verify required files exist
 		echo "Error: Inventory file not found at $(PATH_TO_INVENTORY)"; \
 		exit 1; \
 	fi
-	@echo "Package file: $(if $(wildcard $(PATH_TO_PACKAGE)),found [$(PATH_TO_PACKAGE)],not found)"
-	@if [ ! -f "$(PATH_TO_PACKAGE)" ]; then \
-		echo "Error: Package file not found at $(PATH_TO_PACKAGE)"; \
-		exit 1; \
+	@if [ -n "$(PATH_TO_PACKAGE)" ]; then \
+		echo "Package file: $(if $(wildcard $(PATH_TO_PACKAGE)),found [$(PATH_TO_PACKAGE)],not found)"; \
+		if [ ! -f "$(PATH_TO_PACKAGE)" ]; then \
+			echo "Error: Package file not found at $(PATH_TO_PACKAGE)"; \
+			exit 1; \
+		fi; \
+	else \
+		echo "Package not provided"; \
 	fi
 	@if [ -n "$(EXTRA_VARS_FILE)" ]; then \
 		echo "Extra vars file: $(if $(wildcard $(EXTRA_VARS_FILE)),found [$(EXTRA_VARS_FILE)],not found)"; \
@@ -237,7 +241,7 @@ gen-prometheus: check-env
 		$(MOUNT_PACKAGE) \
 		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
 		$(EXTRA_VOLUMES) \
-		-v ./custom_steps/generate-prometheus-config.yaml:/ansible/playbooks/custom_steps/generate-prometheus-config.yaml \
+		-v ./custom_steps:/ansible/playbooks/custom_steps \
 		-v $(shell pwd):/tmp/get:Z \
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
@@ -254,7 +258,7 @@ get-endpoints: check-env
 		$(MOUNT_PACKAGE) \
 		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
 		$(EXTRA_VOLUMES) \
-		-v ./custom_steps/get-endpoints.yaml:/ansible/playbooks/custom_steps/get-endpoints.yaml \
+		-v ./custom_steps:/ansible/playbooks/custom_steps \
 		-v $(shell pwd):/tmp/get:Z \
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
@@ -269,19 +273,32 @@ monitoring-remove: ##Deploy monitoring example
 monitoring-remove: 
 	@sudo docker compose --project-directory monitoring down -v --remove-orphans
 
-install-etcd: ## Run custom_steps/etcd/etcd-install.yaml playbook
+install-etcd: ## Run custom_steps/etcd-playbook.yml playbook
 install-etcd: check-env
 	@echo "Starting deployment for [$(ENV)] environment..."
 	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
 	@echo "Using extra vars file: $(EXTRA_VARS_FILE)"
 	$(DOCKER_CMD) \
 		$(VOLUMES) \
-		$(MOUNT_PACKAGE) \
 		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
 		$(EXTRA_VOLUMES) \
-		-v ./custom_steps/etcd:/ansible/playbooks/custom_steps/etcd \
+		-v ./custom_steps:/ansible/playbooks/custom_steps \
 		-v $(shell pwd):/tmp/get:Z \
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
-		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/custom_steps/etcd/etcd-install.yaml
-	# @mv endpoints.txt endpoints-$(ENV).txt
+		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/custom_steps/etcd-playbook.yml -b
+
+uninstall-etcd: ## Run custom_steps/etcd-playbook.yml playbook
+uninstall-etcd: check-env
+	@echo "Starting deployment for [$(ENV)] environment..."
+	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
+	@echo "Using extra vars file: $(EXTRA_VARS_FILE)"
+	$(DOCKER_CMD) \
+		$(VOLUMES) \
+		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
+		$(EXTRA_VOLUMES) \
+		-v ./custom_steps:/ansible/playbooks/custom_steps \
+		-v $(shell pwd):/tmp/get:Z \
+		$(ENV_VARS) \
+		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
+		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/custom_steps/etcd-playbook.yml -b -e etcd_uninstall=true
