@@ -63,6 +63,19 @@ sudo make uninstall-tarantool ENV=dev
 sudo make uninstall-tcm ENV=tcm-staging
 ```
 
+## Установка ETCD кластера
+
+- Подготовить инвентарь etcd и сконфигурировать установку согласно [документации роли](./custom_steps/etcd-role/README.md) 
+
+```bash
+# Установка etcd
+sudo make install-etcd ENV=etcd-dev
+
+# Удаление etcd
+sudo make uninstall-etcd ENV=etcd-dev
+```
+
+
 ### Вспомогательные команды
 ```bash
 # Проверить наличие необходимых файлов
