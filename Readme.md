@@ -140,6 +140,35 @@ PATH_TO_PACKAGE=/opt/packages/${PACKAGE_NAME}
 EXTRA_VOLUMES=-v ./centos.yml:/ansible/playbooks/prepare/os/centos.yml:Z
 ```
 
+### Резервное копирование
+
+#### Добавить следующие переменные в yaml инвентаря
+
+```yaml
+    cartridge_etcd_host: 192.168.0.105
+    cartridge_etcd_port: 2379
+```
+#### Добавить в/создать json файл с дополнительными перемеными (путь к директории бекапов на хостах и количество паралелльных процессов резервного копирования)
+
+```json
+{"tarantool_remote_backups_dir":"/app/backups/",
+"tarantool_ansible_serial_executors": "4"}
+```
+#### Создать резервные копии инстансов
+```bash
+# Для указания конкретных инстансов для резервного копирования, задать переменную в env файле окружения, например BACKUP_LIMIT=storage-1-1
+sudo make backup-tarantool ENV=dev
+```
+
+#### Восстановиться из последних резервных копий
+```bash
+# Для указания конкретных инстансов для восстановления, задать переменную в env файле окружения, например RESTORE_LIMIT=storage-1-1
+sudo make restore-tarantool ENV=dev
+```
+
+#### Для расширенных сценариев восстановления передать другие переменные для восстановления согласно [документации по ATE](https://www.tarantool.io/en/devops/latest/docker-scenarios-common/#ate-admin-auto-restore)
+
+
 ## Особенности работы
 
 1. **Автоподгрузка переменных**:

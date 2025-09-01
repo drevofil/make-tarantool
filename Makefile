@@ -226,6 +226,8 @@ env-template: ## Create template environment file
 	@echo "PATH_TO_PACKAGE=/opt/packages/\$${PACKAGE_NAME}" >> .env.example
 	@echo "" >> .env.example
 	@echo "# Optional extra parameters" >> .env.example
+	@echo "# BACKUP_LIMIT=storage-1-1" >> .env.example
+	@echo "# RESTORE_LIMIT=storage-1-1" >> .env.example
 	@echo "# EXTRA_VOLUMES=-v ./centos.yml:/ansible/playbooks/prepare/os/centos.yml:Z" >> .env.example
 	@echo "# EXTRA_VARS_FILE=/path/to/extra_vars.json" >> .env.example
 	@echo "# Example extra_vars.json content" >> .env.example
@@ -311,3 +313,27 @@ uninstall-etcd: check-env
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
 		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/custom_steps/etcd-playbook.yml -b -e etcd_uninstall=true
+
+backup-tarantool: ## Run Ansible backup.yml playbook
+	@echo "Starting deployment for [$(ENV)] environment..."
+	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
+	@echo "Using extra vars file: $(EXTRA_VARS_FILE)"
+	$(DOCKER_CMD) \
+		$(VOLUMES) \
+		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
+		$(EXTRA_VOLUMES) \
+		$(ENV_VARS) \
+		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
+		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/backup.yml $(if $(BACKUP_LIMIT),--limit $(BACKUP_LIMIT), --limit STORAGES,ROUTERS)
+
+restore-tarantool: ## Run Ansible restore.yml playbook
+	@echo "Starting deployment for [$(ENV)] environment..."
+	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
+	@echo "Using extra vars file: $(EXTRA_VARS_FILE)"
+	$(DOCKER_CMD) \
+		$(VOLUMES) \
+		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
+		$(EXTRA_VOLUMES) \
+		$(ENV_VARS) \
+		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
+		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/restore.yml $(if $(RESTORE_LIMIT),--limit $(RESTORE_LIMIT), --limit STORAGES,ROUTERS)
