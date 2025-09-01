@@ -77,6 +77,15 @@ env_prepare: ## Run Ansible env preperation playbook
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
 		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/env_prepare.yml
+	$(DOCKER_CMD) \
+		$(VOLUMES) \
+		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
+		-v ./custom_steps:/ansible/playbooks/custom_steps \
+		$(EXTRA_VOLUMES) \
+		$(ENV_VARS) \
+		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
+		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/custom_steps/set-bashrc.yml
+
 
 etcd_3_0: ## Run Ansible etcd_3_0.yml playbook
 	@echo "Starting deployment for [$(ENV)] environment..."

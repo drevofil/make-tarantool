@@ -1,0 +1,28 @@
+---
+- name: Configure of a server
+  become: "{{ tarantool_shared_become }}"
+  hosts: "{{ tarantool_shared_hosts | default('all') }}"
+  gather_facts: false
+  tasks:
+    - name: Gather unique ansible hosts
+      tarantool.enterprise.get_unique_physical_machines:
+        module_hostvars: '{{ hostvars }}'
+        play_hosts: '{{ play_hosts }}'
+      become: false
+      run_once: true
+      delegate_to: localhost
+      register: get_unique_physical_machines_res
+      tags: always
+
+    - name: Add block to .bashrc
+      ansible.builtin.blockinfile:
+        path: /home/tarantool/.bashrc
+        block: |
+          export XDG_RUNTIME_DIR="/run/user/$UID"
+          export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - variables"
+        state: present
+      become: yes
+      become_user: tarantool
+      when: inventory_hostname in get_unique_physical_machines_res.instance_name_by_unique_physical_machines
+      tags: always
