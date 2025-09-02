@@ -324,7 +324,7 @@ backup-tarantool: ## Run Ansible backup.yml playbook
 		$(EXTRA_VOLUMES) \
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
-		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/backup.yml $(if $(BACKUP_LIMIT),--limit $(BACKUP_LIMIT), --limit STORAGES,ROUTERS)
+		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/backup.yml $(if $(BACKUP_LIMIT),--limit $(BACKUP_LIMIT), --limit STORAGES,ROUTERS,cores,routers)
 
 restore-tarantool: ## Run Ansible restore.yml playbook
 	@echo "Starting deployment for [$(ENV)] environment..."
@@ -336,4 +336,4 @@ restore-tarantool: ## Run Ansible restore.yml playbook
 		$(EXTRA_VOLUMES) \
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
-		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/restore.yml $(if $(RESTORE_LIMIT),--limit $(RESTORE_LIMIT), --limit STORAGES,ROUTERS)
+		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/restore.yml $(if $(RESTORE_LIMIT),--limit $(RESTORE_LIMIT), --limit STORAGES,ROUTERS,cores,routers)
