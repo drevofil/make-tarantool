@@ -1,0 +1,749 @@
+all:
+  vars:
+    replicator_password: !vault |
+              $ANSIBLE_VAULT;1.1;AES256
+              32363866663862313430363463336437656638376333646437663335663862623135333365336262
+              3039656230346637663563383136373231316463626632350a316662323633306531343065303332
+              65613831363263366331303838353866383638373232326332336438396431623231326563623733
+              6432376632303538630a306565396439363364653962323263353539303638656638346364336262
+              31653061643861613061653265386664336364316633336137633535373838343034
+    storage_password: !vault |
+              $ANSIBLE_VAULT;1.1;AES256
+              36666562633436666536633661386661303132666231623936363065303361336264376131363266
+              3561643266343631303630383164396435363166323135650a386430386665363635316137636461
+              36346531343530343861663734313861393066376362666231313732653631373031356266353862
+              3664343734333835380a333335386162616135323238303862306362396231363138623265646630
+              66306262616464306465653066356265613163316461363230633330616234376464
+    admin_password: !vault |
+              $ANSIBLE_VAULT;1.1;AES256
+              63366639393065646463313862336566633234363134363737386135356532383361383730633763
+              3964383534383639323936316436616134303064613865330a363166386566646235393336643965
+              33663835616136366466313939623035333531386531323130353234613038643639343533363434
+              6462346466613733340a663462356530633161373835616665663032663462633663373936656464
+              35323662623934613435653836346266353433333666663133613936353931313665
+    client_password: !vault |
+              $ANSIBLE_VAULT;1.1;AES256
+              39633264346263643337656235616464393965333562336531666365663334353064666532323932
+              6235643836643633346436656335366164333166353535300a383133623330313639643434383461
+              61343032303035343661626166396435313733623231663131666232653137636137376337613838
+              3461323663343938660a343036396262653336396233393835613265313033326363363739386663
+              3461
+    ansible_ssh_common_args: -o IdentitiesOnly=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no
+    ansible_ssh_retries: 5
+    cartridge_app_name: tarantooldb
+    tarantool_3_0_version_support: true
+    tarantool_config_etcd_endpoints:
+      - http://192.168.111.27:2379
+      - http://192.168.111.30:2379
+      - http://192.168.111.29:2379
+    # ETCD vars for etcd_3_0
+    etcd_host: 192.168.111.27
+    etcd_port: 2379
+    # ETCD vars for backup
+    cartridge_etcd_host: 192.168.111.27
+    cartridge_etcd_port: 2379
+
+    tarantool_config_global:
+      replication:
+        failover: supervised
+      iproto:
+        advertise:
+          peer:
+            login: replicator
+          sharding:
+            login: storage
+      credentials:
+        users:
+          replicator:
+            password: "{{replicator_password}}"
+            roles:
+            - replication
+            - dictionary_api_executor
+            privileges:
+            - permissions: [ execute ]
+              lua_call: [ 'failover.execute' ]
+          storage:
+            password: "{{storage_password}}"
+            roles:
+            - sharding
+          admin:
+            password: "{{admin_pasword}}"
+            roles:
+            - super
+          client:
+            password: "{{client_password}}" 
+            roles:
+            - super
+
+  children:
+    ROUTERS:
+      children:
+        router-1: {}
+        router-2: {}
+        router-3: {}
+        router-4: {}
+        router-5: {}
+        router-6: {}
+        router-7: {}
+        router-8: {}
+        router-9: {}
+        router-10: {}
+        router-11: {}
+        router-12: {}
+      vars:
+        tarantool_config_group:
+          app:
+            module: app.vshard_bootstrapper
+          sharding:
+            roles: [router]
+          roles:
+            - roles.crud-router
+            - roles.metrics-export
+            - dictionary.roles.router
+          memtx:
+            memory: 134217728
+          roles_cfg:
+            roles.crud-router:
+              stats: true
+              stats_driver: metrics
+              stats_quantiles: true
+              stats_quantile_tolerated_error: 0.001
+              stats_quantile_age_buckets_count: 5
+              stats_quantile_max_age_time: 180
+
+    FC:
+      children:
+        fc-01: {}
+        fc-02: {}
+
+    fc-01:
+      hosts:
+        fc-r01-i01:
+      vars:
+        replicaset_alias: coordinator-1
+        tarantool_coordinator: true
+    fc-02:
+      hosts:
+        fc-r02-i01: {}
+      vars:
+        replicaset_alias: coordinator-2
+        tarantool_coordinator: true
+
+    STORAGES:
+      children:
+        storage-1: {}
+        storage-2: {}
+        storage-3: {}
+        storage-4: {}
+        storage-5: {}
+        storage-6: {}
+        storage-7: {}
+        storage-8: {}
+        storage-9: {}
+        storage-10: {}
+      vars:
+        tarantool_config_group:
+          sharding:
+            roles: [storage]
+          roles:
+            - roles.crud-storage
+            - roles.expirationd
+            - roles.metrics-export
+            - dictionary.roles.storage
+          memtx:
+            memory: 134217728
+          roles_cfg:
+            roles.expirationd: []
+
+    # Storage Replicasets
+    storage-1:
+      hosts:
+        storage-1-1: {}
+        storage-1-2: {}
+      vars:
+        replicaset_alias: storage-1
+
+
+    storage-2:
+      hosts:
+        storage-2-1: {}
+        storage-2-2: {}
+      vars:
+        replicaset_alias: storage-2
+
+
+    storage-3:
+      hosts:
+        storage-3-1: {}
+        storage-3-2: {}
+      vars:
+        replicaset_alias: storage-3
+
+
+    storage-4:
+      hosts:
+        storage-4-1: {}
+        storage-4-2: {}
+      vars:
+        replicaset_alias: storage-4
+
+
+    storage-5:
+      hosts:
+        storage-5-1: {}
+        storage-5-2: {}
+      vars:
+        replicaset_alias: storage-5
+
+
+    storage-6:
+      hosts:
+        storage-6-1: {}
+        storage-6-2: {}
+      vars:
+        replicaset_alias: storage-6
+
+
+    storage-7:
+      hosts:
+        storage-7-1: {}
+        storage-7-2: {}
+      vars:
+        replicaset_alias: storage-7
+
+
+    storage-8:
+      hosts:
+        storage-8-1: {}
+        storage-8-2: {}
+      vars:
+        replicaset_alias: storage-8
+
+
+    storage-9:
+      hosts:
+        storage-9-1: {}
+        storage-9-2: {}
+      vars:
+        replicaset_alias: storage-9
+
+
+    storage-10:
+      hosts:
+        storage-10-1: {}
+        storage-10-2: {}
+      vars:
+        replicaset_alias: storage-10
+
+
+    # Router Groups
+    router-1:
+      hosts:
+        router-1-1: {}
+      vars:
+        replicaset_alias: router-1
+
+    router-2:
+      hosts:
+        router-2-1: {}
+      vars:
+        replicaset_alias: router-2
+
+    router-3:
+      hosts:
+        router-3-1: {}
+      vars:
+        replicaset_alias: router-3
+
+    router-4:
+      hosts:
+        router-4-1: {}
+      vars:
+        replicaset_alias: router-4
+
+    router-5:
+      hosts:
+        router-5-1: {}
+      vars:
+        replicaset_alias: router-5
+
+    router-6:
+      hosts:
+        router-6-1: {}
+      vars:
+        replicaset_alias: router-6
+
+    router-7:
+      hosts:
+        router-7-1: {}
+      vars:
+        replicaset_alias: router-7
+
+    router-8:
+      hosts:
+        router-8-1: {}
+      vars:
+        replicaset_alias: router-8
+
+    router-9:
+      hosts:
+        router-9-1: {}
+      vars:
+        replicaset_alias: router-9
+
+    router-10:
+      hosts:
+        router-10-1: {}
+      vars:
+        replicaset_alias: router-10
+
+    router-11:
+      hosts:
+        router-11-1: {}
+      vars:
+        replicaset_alias: router-11
+
+    router-12:
+      hosts:
+        router-12-1: {}
+      vars:
+        replicaset_alias: router-12
+
+    # Physical Host Groups
+    host1:
+      hosts:
+        storage-1-1:
+          iproto:
+            listen:
+            - uri: 192.168.111.27:3301
+            advertise:
+              client: 192.168.111.27:3301
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8181
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+        storage-4-2:
+          iproto:
+            listen:
+            - uri: 192.168.111.27:3302
+            advertise:
+              client: 192.168.111.27:3302
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8182
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+        storage-5-1:
+          iproto:
+            listen:
+            - uri: 192.168.111.27:3303
+            advertise:
+              client: 192.168.111.27:3303
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8183
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+        storage-7-1:
+          iproto:
+            listen:
+            - uri: 192.168.111.27:3304
+            advertise:
+              client: 192.168.111.27:3304
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8184
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+        storage-10-2:
+          iproto:
+            listen:
+            - uri: 192.168.111.27:3305
+            advertise:
+              client: 192.168.111.27:3305
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8185
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+        router-1-1:
+          iproto:
+            listen:
+            - uri: 192.168.111.27:3310
+            advertise:
+              client: 192.168.111.27:3310
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8190
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+        router-2-1:
+          iproto:
+            listen:
+            - uri: 192.168.111.27:3311
+            advertise:
+              client: 192.168.111.27:3311
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8191
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+        router-3-1:
+          iproto:
+            listen:
+            - uri: 192.168.111.27:3312
+            advertise:
+              client: 192.168.111.27:3312
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8192
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+        fc-r01-i01:
+      vars:
+        ansible_host: 192.168.111.27
+
+    host2:
+      hosts:
+        storage-1-2:
+          iproto:
+            listen:
+            - uri: 192.168.111.30:3301
+            advertise:
+              client: 192.168.111.30:3301
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8181
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+        storage-2-1:
+          iproto:
+            listen:
+            - uri: 192.168.111.30:3302
+            advertise:
+              client: 192.168.111.30:3302
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8182
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+        storage-6-1:
+          iproto:
+            listen:
+            - uri: 192.168.111.30:3303
+            advertise:
+              client: 192.168.111.30:3303
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8183
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+        storage-7-2:
+          iproto:
+            listen:
+            - uri: 192.168.111.30:3304
+            advertise:
+              client: 192.168.111.30:3304
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8184
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+        storage-8-1:
+          iproto:
+            listen:
+            - uri: 192.168.111.30:3305
+            advertise:
+              client: 192.168.111.30:3305
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8185
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+        router-4-1:
+          iproto:
+            listen:
+            - uri: 192.168.111.30:3310
+            advertise:
+              client: 192.168.111.30:3310
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8190
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+        router-5-1:
+          iproto:
+            listen:
+            - uri: 192.168.111.30:3311
+            advertise:
+              client: 192.168.111.30:3311
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8191
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+        router-6-1:
+          iproto:
+            listen:
+            - uri: 192.168.111.30:3312
+            advertise:
+              client: 192.168.111.30:3312
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8192
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+        fc-r02-i01:
+      vars:
+        ansible_host: 192.168.111.30
+
+    host3:
+      hosts:
+        storage-2-2:
+          iproto:
+            listen:
+            - uri: 192.168.111.29:3301
+            advertise:
+              client: 192.168.111.29:3301
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8181
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+        storage-3-1:
+          iproto:
+            listen:
+            - uri: 192.168.111.29:3302
+            advertise:
+              client: 192.168.111.29:3302
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8182
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+        storage-5-2:
+          iproto:
+            listen:
+            - uri: 192.168.111.29:3303
+            advertise:
+              client: 192.168.111.29:3303
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8183
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+        storage-8-2:
+          iproto:
+            listen:
+            - uri: 192.168.111.29:3304
+            advertise:
+              client: 192.168.111.29:3304
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8184
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+        storage-9-1:
+          iproto:
+            listen:
+            - uri: 192.168.111.29:3305
+            advertise:
+              client: 192.168.111.29:3305
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8185
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+        router-7-1:
+          iproto:
+            listen:
+            - uri: 192.168.111.29:3310
+            advertise:
+              client: 192.168.111.29:3310
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8190
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+        router-8-1:
+          iproto:
+            listen:
+            - uri: 192.168.111.29:3311
+            advertise:
+              client: 192.168.111.29:3311
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8191
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+        router-9-1:
+          iproto:
+            listen:
+            - uri: 192.168.111.29:3312
+            advertise:
+              client: 192.168.111.29:3312
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8192
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+      vars:
+        ansible_host: 192.168.111.29
+
+    host4:
+      hosts:
+        storage-3-2:
+          iproto:
+            listen:
+            - uri: 192.168.111.33:3301
+            advertise:
+              client: 192.168.111.33:3301
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8181
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+        storage-4-1:
+          iproto:
+            listen:
+            - uri: 192.168.111.33:3302
+            advertise:
+              client: 192.168.111.33:3302
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8182
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+        storage-6-2:
+          iproto:
+            listen:
+            - uri: 192.168.111.33:3303
+            advertise:
+              client: 192.168.111.33:3303
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8183
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+        storage-9-2:
+          iproto:
+            listen:
+            - uri: 192.168.111.33:3304
+            advertise:
+              client: 192.168.111.33:3304
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8184
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+        storage-10-1:
+          iproto:
+            listen:
+            - uri: 192.168.111.33:3305
+            advertise:
+              client: 192.168.111.33:3305
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8185
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+        router-10-1:
+          iproto:
+            listen:
+            - uri: 192.168.111.33:3310
+            advertise:
+              client: 192.168.111.33:3310
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8190
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+        router-11-1:
+          iproto:
+            listen:
+            - uri: 192.168.111.33:3311
+            advertise:
+              client: 192.168.111.33:3311
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8191
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+        router-12-1:
+          iproto:
+            listen:
+            - uri: 192.168.111.33:3312
+            advertise:
+              client: 192.168.111.33:3312
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8192
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+      vars:
+        ansible_host: 192.168.111.33
