@@ -354,7 +354,7 @@ restore-tarantool: ## Run Ansible restore.yml playbook
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
 		$(PLAYBOOK_CMD) $(EXTRA_VARS) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansile/vault) playbooks/restore.yml $(if $(RESTORE_LIMIT),--limit $(RESTORE_LIMIT), --limit STORAGES,ROUTERS,cores,routers)
 
-encrypt-string: ## Encrypt a string with Ansible Vault. Requires VAULT_PASSWORD and STRING_TO_ENCRYPT environment variables.
+encrypt-string: ## Encrypt a string with Ansible Vault. Requires VAULT_PASSWORD_FILE in .env file
 encrypt-string: check-env
 	$(DOCKER_CMD) \
 		-v $(VAULT_PASSWORD_FILE):/ansible/vault:Z \
