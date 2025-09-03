@@ -1,5 +1,6 @@
 .DEFAULT_GOAL := help
 ENV ?= default
+VERSION ?= 1.5.0
 
 # Load environment variables
 ENV_FILE := .env.$(ENV)
@@ -48,6 +49,9 @@ define BASE_EXTRA_VARS
 endef
 
 define PRINT_HELP
+	@echo "Ansible Tarantool Enterprise Deployment Tool v$(VERSION)"
+	@echo "======================================================"
+	@echo ""
 	@echo "Available environments:"
 	@ls -1 .env.* 2>/dev/null | sed 's/\.env\.\(.*\)/  \1/' || echo "  (no environment files found)"
     @echo "\nTargets:"
@@ -64,6 +68,9 @@ $(BASE_EXTRA_VARS) $(EXTRA_VARS_FILE_FLAG)
 endef
 
 .PHONY: deploy help etcd_3_0 install_3_0 uninstall check-env variables env_prepare environments env-template
+
+version: ## Show current version
+	@echo "Ansible Tarantool Enterprise Deployment Tool v$(VERSION)"
 
 env_prepare: TARANTOOL_BECOME_USER = root
 env_prepare: ## Prepare hosts before install
