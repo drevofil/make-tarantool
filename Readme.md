@@ -1,6 +1,6 @@
 # Make-based Ansible Tarantool Enterprise Deployment Tool
 
-Этот проект предоставляет Makefile для удобного развертывания Tarantool Enterprise с использованием Ansible Tarantool Enteprise в Docker-контейнере.
+Этот проект предоставляет Makefile для удобного развертывания Tarantool Enterprise с использованием Ansible Tarantool Enterprise в Docker-контейнере.
 
 ## Предварительные требования
 
@@ -75,7 +75,6 @@ sudo make install-etcd ENV=etcd-dev
 sudo make uninstall-etcd ENV=etcd-dev
 ```
 
-
 ### Вспомогательные команды
 ```bash
 # Проверить наличие необходимых файлов
@@ -89,7 +88,6 @@ sudo make gen-prometheus ENV=dev
 
 # Получить эндпоинты для каждого инстанта Tarantool. Список появится в текущем каталоге с именем endpoints-$ENV.txt
 sudo make get-endpoints ENV=dev
-
 ```
 
 ### Мониторинг
@@ -101,7 +99,6 @@ sudo make monitoring-install
 
 # Удалить мониторинг
 sudo make monitoring-remove
-
 ```
 
 ## Структура файлов окружения
@@ -118,10 +115,58 @@ PATH_TO_INVENTORY=/opt/inventories/hosts.yml
 PATH_TO_PACKAGE=/opt/packages/${PACKAGE_NAME}
 
 # Optional extra parameters
+# VAULT_PASSWORD_FILE=/path/to/vault_password_file
 # EXTRA_VOLUMES=-v ./centos.yml:/ansible/playbooks/prepare/os/centos.yml:Z
 # EXTRA_VARS_FILE=/path/to/extra_vars.json
 # Example extra_vars.json content
 # {"custom_option": "value"}
+```
+
+## Использование Ansible Vault
+
+Для работы с зашифрованными переменными через Ansible Vault:
+
+1. Создайте файл с паролем для vault:
+```bash
+echo "your_vault_password" > ~/.vault_password
+chmod 600 ~/.vault_password
+```
+
+2. Добавьте путь к файлу с паролем в .env файл окружения:
+```ini
+VAULT_PASSWORD_FILE=/home/user/.vault_password
+```
+
+3. При использовании команд Makefile vault-пароль будет автоматически подключаться к контейнеру и использоваться Ansible для расшифровки переменных.
+
+
+4. Зашифровать строку (либо несколько строк разделённых пробелом)
+
+```shell
+sudo make encrypt-string ENV=test STRING_TO_ENCRYPT='super-password'
+```
+
+5. Полученный вывод добавить в значение переменной в инвентаре
+
+```yaml
+all:
+  vars:
+    replicator_password: !vault |
+              $ANSIBLE_VAULT;1.1;AES256
+              32363866663862313430363463336437656638376333646437663335663862623135333365336262
+              ...
+              ...
+              ...
+```
+
+6. Указать эту переменную, например в параметре tarantool_config_global
+
+```yaml
+    tarantool_config_global:
+      credentials:
+        users:
+          replicator:
+            password: "{{replicator_password}}"
 ```
 
 ## Пользовательские параметры
@@ -145,15 +190,19 @@ EXTRA_VOLUMES=-v ./centos.yml:/ansible/playbooks/prepare/os/centos.yml:Z
 #### Добавить следующие переменные в yaml инвентаря
 
 ```yaml
-    cartridge_etcd_host: 192.168.0.105
-    cartridge_etcd_port: 2379
+cartridge_etcd_host: 192.168.0.105
+cartridge_etcd_port: 2379
 ```
-#### Добавить в/создать json файл с дополнительными перемеными (путь к директории бекапов на хостах и количество паралелльных процессов резервного копирования)
+
+#### Добавить в/создать json файл с дополнительными переменными (путь к директории бекапов на хостах и количество параллельных процессов резервного копирования)
 
 ```json
-{"tarantool_remote_backups_dir":"/app/backups/",
-"tarantool_ansible_serial_executors": "4"}
+{
+  "tarantool_remote_backups_dir": "/app/backups/",
+  "tarantool_ansible_serial_executors": "4"
+}
 ```
+
 #### Создать резервные копии инстансов
 ```bash
 # Для указания конкретных инстансов для резервного копирования, задать переменную в env файле окружения, например BACKUP_LIMIT=storage-1-1
@@ -168,7 +217,6 @@ sudo make restore-tarantool ENV=dev
 
 #### Для расширенных сценариев восстановления передать другие переменные для восстановления согласно [документации по ATE](https://www.tarantool.io/en/devops/latest/docker-scenarios-common/#ate-admin-auto-restore)
 
-
 ## Особенности работы
 
 1. **Автоподгрузка переменных**:
@@ -182,11 +230,14 @@ sudo make restore-tarantool ENV=dev
    - Файла инвентаризации
    - Архива с продуктом
    - Дополнительного файла переменных (если указан)
+   - Файла пароля vault (если указан)
 
 3. **Безопасность**:
    - Файлы монтируются в контейнер в режиме read-only
+   - Поддержка Ansible Vault для работы с зашифрованными переменными
 
 ## Советы
 
 - Все команды можно выполнять с `ENV=<name>` для выбора окружения
 - Используйте `make help` для просмотра всех доступных команд
+- Для дополнительной безопасности используйте Ansible Vault для хранения чувствительных данных

@@ -51,7 +51,7 @@ define PRINT_HELP
 	@echo "Available environments:"
 	@ls -1 .env.* 2>/dev/null | sed 's/\.env\.\(.*\)/  \1/' || echo "  (no environment files found)"
     @echo "\nTargets:"
-    @awk 'BEGIN {FS = ":.*?## "} /^[0-9a-zA-Z_-]+:.*?## / { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST) | sort
+    @awk 'BEGIN {FS = ":.*?## "} /^[0-9a-zA-Z_-]+:.*?## / { printf "  \033[36m%-25s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
     @echo
 endef
 
@@ -66,13 +66,14 @@ endef
 .PHONY: deploy help etcd_3_0 install_3_0 uninstall check-env variables env_prepare environments env-template
 
 env_prepare: TARANTOOL_BECOME_USER = root
-env_prepare: ## Run Ansible env preperation playbook
+env_prepare: ## Prepare hosts before install
 	@echo "Starting env preparation for [$(ENV)] environment with root privileges..."
 	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
 	@echo "Using extra vars file: $(EXTRA_VARS_FILE)"
 	$(DOCKER_CMD) \
 		$(VOLUMES) \
 		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
+		$(if $(VAULT_PASSWORD_FILE),-v $(VAULT_PASSWORD_FILE):/ansible/vault:Z,)
 		$(EXTRA_VOLUMES) \
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
@@ -80,14 +81,15 @@ env_prepare: ## Run Ansible env preperation playbook
 	$(DOCKER_CMD) \
 		$(VOLUMES) \
 		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
+		$(if $(VAULT_PASSWORD_FILE),-v $(VAULT_PASSWORD_FILE):/ansible/vault:Z,)
 		-v ./custom_steps:/ansible/playbooks/custom_steps \
 		$(EXTRA_VOLUMES) \
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
-		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/custom_steps/set-bashrc.yml
+		$(PLAYBOOK_CMD) $(EXTRA_VARS) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansile/vault) playbooks/custom_steps/set-bashrc.yml
 
 
-etcd_3_0: ## Run Ansible etcd_3_0.yml playbook
+etcd_3_0: ## Store cluster config in ETCD (etcd_3_0.yml)
 	@echo "Starting deployment for [$(ENV)] environment..."
 	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
 	@echo "Using extra vars file: $(EXTRA_VARS_FILE)"
@@ -95,12 +97,13 @@ etcd_3_0: ## Run Ansible etcd_3_0.yml playbook
 		$(VOLUMES) \
 		$(MOUNT_PACKAGE) \
 		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
+		$(if $(VAULT_PASSWORD_FILE),-v $(VAULT_PASSWORD_FILE):/ansible/vault:Z,)
 		$(EXTRA_VOLUMES) \
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
-		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/etcd_3_0.yml
+		$(PLAYBOOK_CMD) $(EXTRA_VARS) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansile/vault) playbooks/etcd_3_0.yml
 
-install_3_0: ## Run Ansible install_3_0.yml playbook
+install_3_0: ## Install Tarantool 3.x (install_3_0.yml)
 	@echo "Starting deployment for [$(ENV)] environment..."
 	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
 	@echo "Using extra vars file: $(EXTRA_VARS_FILE)"
@@ -108,12 +111,13 @@ install_3_0: ## Run Ansible install_3_0.yml playbook
 		$(VOLUMES) \
 		$(MOUNT_PACKAGE) \
 		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
+		$(if $(VAULT_PASSWORD_FILE),-v $(VAULT_PASSWORD_FILE):/ansible/vault:Z,)
 		$(EXTRA_VOLUMES) \
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
-		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/install_3_0.yml
+		$(PLAYBOOK_CMD) $(EXTRA_VARS) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansile/vault) playbooks/install_3_0.yml
 
-install_tcm: ## Run Ansible tcm/install.yml playbook
+install_tcm: ## Install Tarantool Cluster Manager (tcm/install.yml)
 	@echo "Starting deployment for [$(ENV)] environment..."
 	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
 	@echo "Using extra vars file: $(EXTRA_VARS_FILE)"
@@ -121,12 +125,13 @@ install_tcm: ## Run Ansible tcm/install.yml playbook
 		$(VOLUMES) \
 		$(MOUNT_PACKAGE) \
 		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
+		$(if $(VAULT_PASSWORD_FILE),-v $(VAULT_PASSWORD_FILE):/ansible/vault:Z,)
 		$(EXTRA_VOLUMES) \
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
-		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/tcm/install.yml
+		$(PLAYBOOK_CMD) $(EXTRA_VARS) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansile/vault) playbooks/tcm/install.yml
 
-uninstall-tarantool: ## Run Ansible uninstall.yml playbook
+uninstall-tarantool: ## Uninstall Tarantool (uninstall.yml)
 uninstall-tarantool: check-env
 	@echo "Starting uninstall for [$(ENV)] environment..."
 	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
@@ -135,12 +140,13 @@ uninstall-tarantool: check-env
 		$(VOLUMES) \
 		$(MOUNT_PACKAGE) \
 		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
+		$(if $(VAULT_PASSWORD_FILE),-v $(VAULT_PASSWORD_FILE):/ansible/vault:Z,)
 		$(EXTRA_VOLUMES) \
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
-		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/uninstall.yml
+		$(PLAYBOOK_CMD) $(EXTRA_VARS) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansile/vault) playbooks/uninstall.yml
 
-uninstall-tcm: ## Run Ansible uninstall.yml playbook with --tags tcm
+uninstall-tcm: ## Uninstall Tarantool Cluster Manager (uninstall.yml --tags tcm)
 uninstall-tcm: check-env
 	@echo "Starting uninstall for [$(ENV)] environment..."
 	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
@@ -149,14 +155,16 @@ uninstall-tcm: check-env
 		$(VOLUMES) \
 		$(MOUNT_PACKAGE) \
 		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
+		$(if $(VAULT_PASSWORD_FILE),-v $(VAULT_PASSWORD_FILE):/ansible/vault:Z,)
 		$(EXTRA_VOLUMES) \
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
-		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/uninstall.yml  --tags tcm
+		$(PLAYBOOK_CMD) $(EXTRA_VARS) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansile/vault) playbooks/uninstall.yml  --tags tcm
 
 help: ## Print help
 	$(PRINT_HELP)
 
+check-env: ## Verify required files exist
 check-env: ## Verify required files exist
 	@echo "Checking required files for environment [$(ENV)]..."
 	@echo "Environment file: $(if $(wildcard $(ENV_FILE)),found [$(ENV_FILE)],not found - using defaults)"
@@ -188,22 +196,21 @@ check-env: ## Verify required files exist
 	else \
 		echo "Extra vars file: not specified"; \
 	fi
+	@if [ -n "$(VAULT_PASSWORD_FILE)" ]; then \
+		echo "Vault password file: $(if $(wildcard $(VAULT_PASSWORD_FILE)),found [$(VAULT_PASSWORD_FILE)],not found)"; \
+		if [ ! -f "$(VAULT_PASSWORD_FILE)" ]; then \
+			echo "Error: Vault password file not found at $(VAULT_PASSWORD_FILE)"; \
+			exit 1; \
+		fi; \
+	else \
+		echo "Vault password file: not specified"; \
+	fi
 	@echo "All required files found."
-
 variables: ## Show current variables configuration
 	@echo "Environment: [$(ENV)]"
 	@echo "Using file: $(ENV_FILE)"
 	@echo "\nVariables:"
-	@echo "  IMAGE_NAME              = $(IMAGE_NAME)"
-	@echo "  DEPLOY_TOOL_VERSION_TAG = $(DEPLOY_TOOL_VERSION_TAG)"
-	@echo "  SUPER_USER_NAME         = $(SUPER_USER_NAME)"
-	@echo "  PACKAGE_NAME            = $(PACKAGE_NAME)"
-	@echo "  PATH_TO_PRIVATE_KEY     = $(PATH_TO_PRIVATE_KEY)"
-	@echo "  PATH_TO_INVENTORY       = $(PATH_TO_INVENTORY)"
-	@echo "  PATH_TO_PACKAGE         = $(PATH_TO_PACKAGE)"
-	@echo "  TARANTOOL_BECOME_USER   = $(TARANTOOL_BECOME_USER)"
-	@echo "  EXTRA_VOLUMES           = $(EXTRA_VOLUMES)"
-	@echo "  EXTRA_VARS_FILE         = $(EXTRA_VARS_FILE)"
+	@cat $(ENV_FILE) | grep -v '#'
 vars: ## Same as variables
 vars: variables
 
@@ -213,7 +220,6 @@ environments: ## List available environments
 envs: ## Same as environments
 envs: environments
 
-# Example file creation
 env-template: ## Create template environment file
 	@echo "Creating template: .env.example"
 	@echo "# Deployment configuration for example environment" > .env.example
@@ -226,12 +232,16 @@ env-template: ## Create template environment file
 	@echo "PATH_TO_PACKAGE=/opt/packages/\$${PACKAGE_NAME}" >> .env.example
 	@echo "" >> .env.example
 	@echo "# Optional extra parameters" >> .env.example
+	@echo "# VAULT_PASSWORD_FILE=/path/to/vault_password_file" >> .env.example
 	@echo "# BACKUP_LIMIT=storage-1-1" >> .env.example
 	@echo "# RESTORE_LIMIT=storage-1-1" >> .env.example
 	@echo "# EXTRA_VOLUMES=-v ./centos.yml:/ansible/playbooks/prepare/os/centos.yml:Z" >> .env.example
 	@echo "# EXTRA_VARS_FILE=/path/to/extra_vars.json" >> .env.example
 	@echo "# Example extra_vars.json content" >> .env.example
 	@echo "# {\"custom_option\": \"value\"}" >> .env.example
+	@echo "" >> .env.example
+	@echo "# For encrypting strings with ansible-vault:" >> .env.example
+	@echo "# sudo make encrypt-string ENV=env_name STRING_TO_ENCRYPT='your string'" >> .env.example
 
 deploy-tdb: ## Deploy TarantoolDB cluster
 deploy-tdb: check-env\
@@ -251,12 +261,13 @@ gen-prometheus: check-env
 		$(VOLUMES) \
 		$(MOUNT_PACKAGE) \
 		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
+		$(if $(VAULT_PASSWORD_FILE),-v $(VAULT_PASSWORD_FILE):/ansible/vault:Z,)
 		$(EXTRA_VOLUMES) \
 		-v ./custom_steps:/ansible/playbooks/custom_steps \
 		-v $(shell pwd):/tmp/get:Z \
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
-		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/custom_steps/generate-prometheus-config.yaml
+		$(PLAYBOOK_CMD) $(EXTRA_VARS) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansile/vault) playbooks/custom_steps/generate-prometheus-config.yaml
 	@mv prometheus_tarantool.yml prometheus-tarantool-$(ENV).yml 
 
 get-endpoints: ## Run custom_steps/get-endpoints.yaml playbook
@@ -268,12 +279,13 @@ get-endpoints: check-env
 		$(VOLUMES) \
 		$(MOUNT_PACKAGE) \
 		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
+		$(if $(VAULT_PASSWORD_FILE),-v $(VAULT_PASSWORD_FILE):/ansible/vault:Z,)
 		$(EXTRA_VOLUMES) \
 		-v ./custom_steps:/ansible/playbooks/custom_steps \
 		-v $(shell pwd):/tmp/get:Z \
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
-		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/custom_steps/get-endpoints.yaml
+		$(PLAYBOOK_CMD) $(EXTRA_VARS) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansile/vault) playbooks/custom_steps/get-endpoints.yaml
 	@mv endpoints.txt endpoints-$(ENV).txt
 
 monitoring-install: ##Deploy monitoring example
@@ -292,12 +304,13 @@ install-etcd: check-env
 	$(DOCKER_CMD) \
 		$(VOLUMES) \
 		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
+		$(if $(VAULT_PASSWORD_FILE),-v $(VAULT_PASSWORD_FILE):/ansible/vault:Z,)
 		$(EXTRA_VOLUMES) \
 		-v ./custom_steps:/ansible/playbooks/custom_steps \
 		-v $(shell pwd):/tmp/get:Z \
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
-		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/custom_steps/etcd-playbook.yml -b
+		$(PLAYBOOK_CMD) $(EXTRA_VARS) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansile/vault) playbooks/custom_steps/etcd-playbook.yml -b
 
 uninstall-etcd: ## Run custom_steps/etcd-playbook.yml playbook
 uninstall-etcd: check-env
@@ -307,12 +320,13 @@ uninstall-etcd: check-env
 	$(DOCKER_CMD) \
 		$(VOLUMES) \
 		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
+		$(if $(VAULT_PASSWORD_FILE),-v $(VAULT_PASSWORD_FILE):/ansible/vault:Z,)
 		$(EXTRA_VOLUMES) \
 		-v ./custom_steps:/ansible/playbooks/custom_steps \
 		-v $(shell pwd):/tmp/get:Z \
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
-		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/custom_steps/etcd-playbook.yml -b -e etcd_uninstall=true
+		$(PLAYBOOK_CMD) $(EXTRA_VARS) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansile/vault) playbooks/custom_steps/etcd-playbook.yml -b -e etcd_uninstall=true
 
 backup-tarantool: ## Run Ansible backup.yml playbook
 	@echo "Starting deployment for [$(ENV)] environment..."
@@ -321,10 +335,11 @@ backup-tarantool: ## Run Ansible backup.yml playbook
 	$(DOCKER_CMD) \
 		$(VOLUMES) \
 		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
+		$(if $(VAULT_PASSWORD_FILE),-v $(VAULT_PASSWORD_FILE):/ansible/vault:Z,)
 		$(EXTRA_VOLUMES) \
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
-		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/backup.yml $(if $(BACKUP_LIMIT),--limit $(BACKUP_LIMIT), --limit STORAGES,ROUTERS,cores,routers)
+		$(PLAYBOOK_CMD) $(EXTRA_VARS) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansile/vault) playbooks/backup.yml $(if $(BACKUP_LIMIT),--limit $(BACKUP_LIMIT), --limit STORAGES,ROUTERS,cores,routers)
 
 restore-tarantool: ## Run Ansible restore.yml playbook
 	@echo "Starting deployment for [$(ENV)] environment..."
@@ -333,7 +348,15 @@ restore-tarantool: ## Run Ansible restore.yml playbook
 	$(DOCKER_CMD) \
 		$(VOLUMES) \
 		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
+		$(if $(VAULT_PASSWORD_FILE),-v $(VAULT_PASSWORD_FILE):/ansible/vault:Z,)
 		$(EXTRA_VOLUMES) \
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
-		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/restore.yml $(if $(RESTORE_LIMIT),--limit $(RESTORE_LIMIT), --limit STORAGES,ROUTERS,cores,routers)
+		$(PLAYBOOK_CMD) $(EXTRA_VARS) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansile/vault) playbooks/restore.yml $(if $(RESTORE_LIMIT),--limit $(RESTORE_LIMIT), --limit STORAGES,ROUTERS,cores,routers)
+
+encrypt-string: ## Encrypt a string with Ansible Vault. Requires VAULT_PASSWORD and STRING_TO_ENCRYPT environment variables.
+encrypt-string: check-env
+	$(DOCKER_CMD) \
+		-v $(VAULT_PASSWORD_FILE):/ansible/vault:Z \
+		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
+		ansible-vault encrypt_string --vault-password-file /ansible/vault $(STRING_TO_ENCRYPT)

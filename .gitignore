@@ -8,3 +8,4 @@ hosts.tcm*
 custom_steps/etcd-role/files/*.tar.gz
 *.json
 !extra_vars.json
+vault
