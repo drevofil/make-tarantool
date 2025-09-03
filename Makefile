@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 ENV ?= default
-VERSION ?= 1.5.1
+VERSION ?= 1.6.0
 
 # Load environment variables
 ENV_FILE := .env.$(ENV)
@@ -97,7 +97,7 @@ env_prepare: ## Prepare hosts before install
 
 
 etcd_3_0: ## Store cluster config in ETCD (etcd_3_0.yml)
-	@echo "Starting deployment for [$(ENV)] environment..."
+	@echo "Starting ETCD preparation for [$(ENV)] environment..."
 	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
 	@echo "Using extra vars file: $(EXTRA_VARS_FILE)"
 	$(DOCKER_CMD) \
@@ -111,7 +111,7 @@ etcd_3_0: ## Store cluster config in ETCD (etcd_3_0.yml)
 		$(PLAYBOOK_CMD) $(EXTRA_VARS) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansible/vault) playbooks/etcd_3_0.yml
 
 install_3_0: ## Install Tarantool 3.x (install_3_0.yml)
-	@echo "Starting deployment for [$(ENV)] environment..."
+	@echo "Starting install Tarantool 3.x deployment for [$(ENV)] environment..."
 	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
 	@echo "Using extra vars file: $(EXTRA_VARS_FILE)"
 	$(DOCKER_CMD) \
@@ -125,7 +125,7 @@ install_3_0: ## Install Tarantool 3.x (install_3_0.yml)
 		$(PLAYBOOK_CMD) $(EXTRA_VARS) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansible/vault) playbooks/install_3_0.yml
 
 install_tcm: ## Install Tarantool Cluster Manager (tcm/install.yml)
-	@echo "Starting deployment for [$(ENV)] environment..."
+	@echo "Starting Tarantool Cluster Manager deployment for [$(ENV)] environment..."
 	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
 	@echo "Using extra vars file: $(EXTRA_VARS_FILE)"
 	$(DOCKER_CMD) \
@@ -140,7 +140,7 @@ install_tcm: ## Install Tarantool Cluster Manager (tcm/install.yml)
 
 uninstall-tarantool: ## Uninstall Tarantool (uninstall.yml)
 uninstall-tarantool: check-env
-	@echo "Starting uninstall for [$(ENV)] environment..."
+	@echo "Starting uninstall Tarantool for [$(ENV)] environment..."
 	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
 	@echo "Using extra vars file: $(EXTRA_VARS_FILE)"
 	$(DOCKER_CMD) \
@@ -155,7 +155,7 @@ uninstall-tarantool: check-env
 
 uninstall-tcm: ## Uninstall Tarantool Cluster Manager (uninstall.yml --tags tcm)
 uninstall-tcm: check-env
-	@echo "Starting uninstall for [$(ENV)] environment..."
+	@echo "Starting uninstall Tarantool Cluster Manager for [$(ENV)] environment..."
 	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
 	@echo "Using extra vars file: $(EXTRA_VARS_FILE)"
 	$(DOCKER_CMD) \
@@ -261,7 +261,7 @@ deploy-tcm: check-env\
 
 gen-prometheus: ## Run custom_steps/generate-prometheus-config.yaml playbook
 gen-prometheus: check-env
-	@echo "Starting deployment for [$(ENV)] environment..."
+	@echo "Generate prometheus config for [$(ENV)] environment..."
 	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
 	@echo "Using extra vars file: $(EXTRA_VARS_FILE)"
 	$(DOCKER_CMD) \
@@ -279,7 +279,7 @@ gen-prometheus: check-env
 
 get-endpoints: ## Run custom_steps/get-endpoints.yaml playbook
 get-endpoints: check-env
-	@echo "Starting deployment for [$(ENV)] environment..."
+	@echo "Get instance endpoints for [$(ENV)] environment..."
 	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
 	@echo "Using extra vars file: $(EXTRA_VARS_FILE)"
 	$(DOCKER_CMD) \
@@ -305,7 +305,7 @@ monitoring-remove:
 
 install-etcd: ## Run custom_steps/etcd-playbook.yml playbook
 install-etcd: check-env
-	@echo "Starting deployment for [$(ENV)] environment..."
+	@echo "Starting ETCD install for [$(ENV)] environment..."
 	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
 	@echo "Using extra vars file: $(EXTRA_VARS_FILE)"
 	$(DOCKER_CMD) \
@@ -321,7 +321,7 @@ install-etcd: check-env
 
 uninstall-etcd: ## Run custom_steps/etcd-playbook.yml playbook
 uninstall-etcd: check-env
-	@echo "Starting deployment for [$(ENV)] environment..."
+	@echo "Starting ETCD uninstall for [$(ENV)] environment..."
 	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
 	@echo "Using extra vars file: $(EXTRA_VARS_FILE)"
 	$(DOCKER_CMD) \
@@ -336,7 +336,7 @@ uninstall-etcd: check-env
 		$(PLAYBOOK_CMD) $(EXTRA_VARS) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansible/vault) playbooks/custom_steps/etcd-playbook.yml -b -e etcd_uninstall=true
 
 backup-tarantool: ## Run Ansible backup.yml playbook
-	@echo "Starting deployment for [$(ENV)] environment..."
+	@echo "Starting backup for [$(ENV)] environment..."
 	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
 	@echo "Using extra vars file: $(EXTRA_VARS_FILE)"
 	$(DOCKER_CMD) \
@@ -349,7 +349,7 @@ backup-tarantool: ## Run Ansible backup.yml playbook
 		$(PLAYBOOK_CMD) $(EXTRA_VARS) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansible/vault) playbooks/backup.yml $(if $(BACKUP_LIMIT),--limit $(BACKUP_LIMIT), --limit STORAGES,ROUTERS,cores,routers)
 
 restore-tarantool: ## Run Ansible restore.yml playbook
-	@echo "Starting deployment for [$(ENV)] environment..."
+	@echo "Starting restoring for [$(ENV)] environment..."
 	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
 	@echo "Using extra vars file: $(EXTRA_VARS_FILE)"
 	$(DOCKER_CMD) \
@@ -359,7 +359,23 @@ restore-tarantool: ## Run Ansible restore.yml playbook
 		$(EXTRA_VOLUMES) \
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
+		$(PLAYBOOK_CMD) $(EXTRA_VARS) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansible/vault) playbooks/stop.yml $(if $(RESTORE_LIMIT),--limit $(RESTORE_LIMIT), --limit STORAGES,ROUTERS,cores,routers)
+	$(DOCKER_CMD) \
+		$(VOLUMES) \
+		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
+		$(if $(VAULT_PASSWORD_FILE),-v $(VAULT_PASSWORD_FILE):/ansible/vault:Z,) \
+		$(EXTRA_VOLUMES) \
+		$(ENV_VARS) \
+		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
 		$(PLAYBOOK_CMD) $(EXTRA_VARS) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansible/vault) playbooks/restore.yml $(if $(RESTORE_LIMIT),--limit $(RESTORE_LIMIT), --limit STORAGES,ROUTERS,cores,routers)
+	$(DOCKER_CMD) \
+		$(VOLUMES) \
+		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
+		$(if $(VAULT_PASSWORD_FILE),-v $(VAULT_PASSWORD_FILE):/ansible/vault:Z,) \
+		$(EXTRA_VOLUMES) \
+		$(ENV_VARS) \
+		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
+		$(PLAYBOOK_CMD) $(EXTRA_VARS) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansible/vault) playbooks/start.yml $(if $(RESTORE_LIMIT),--limit $(RESTORE_LIMIT), --limit STORAGES,ROUTERS,cores,routers)
 
 encrypt-string: ## Encrypt a string with Ansible Vault. Requires VAULT_PASSWORD_FILE in .env file
 encrypt-string: check-env
