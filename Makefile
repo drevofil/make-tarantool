@@ -84,7 +84,7 @@ env_prepare: ## Prepare hosts before install
 		$(EXTRA_VOLUMES) \
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
-		$(PLAYBOOK_CMD) $(EXTRA_VARS) playbooks/env_prepare.yml
+		$(PLAYBOOK_CMD) $(EXTRA_VARS) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansible/vault) playbooks/env_prepare.yml
 	$(DOCKER_CMD) \
 		$(VOLUMES) \
 		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
