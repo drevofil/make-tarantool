@@ -89,7 +89,7 @@ env_prepare: ## Prepare hosts before install
 		$(VOLUMES) \
 		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
 		$(if $(VAULT_PASSWORD_FILE),-v $(VAULT_PASSWORD_FILE):/ansible/vault:Z,) \
-		-v ./custom_steps:/ansible/playbooks/custom_steps \
+		-v ./custom_steps:/ansible/playbooks/custom_steps:Z \
 		$(EXTRA_VOLUMES) \
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
@@ -270,7 +270,7 @@ gen-prometheus: check-env
 		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
 		$(if $(VAULT_PASSWORD_FILE),-v $(VAULT_PASSWORD_FILE):/ansible/vault:Z,) \
 		$(EXTRA_VOLUMES) \
-		-v ./custom_steps:/ansible/playbooks/custom_steps \
+		-v ./custom_steps:/ansible/playbooks/custom_steps:Z \
 		-v $(shell pwd):/tmp/get:Z \
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
@@ -288,7 +288,7 @@ get-endpoints: check-env
 		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
 		$(if $(VAULT_PASSWORD_FILE),-v $(VAULT_PASSWORD_FILE):/ansible/vault:Z,) \
 		$(EXTRA_VOLUMES) \
-		-v ./custom_steps:/ansible/playbooks/custom_steps \
+		-v ./custom_steps:/ansible/playbooks/custom_steps:Z \
 		-v $(shell pwd):/tmp/get:Z \
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
@@ -313,7 +313,7 @@ install-etcd: check-env
 		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
 		$(if $(VAULT_PASSWORD_FILE),-v $(VAULT_PASSWORD_FILE):/ansible/vault:Z,) \
 		$(EXTRA_VOLUMES) \
-		-v ./custom_steps:/ansible/playbooks/custom_steps \
+		-v ./custom_steps:/ansible/playbooks/custom_steps:Z \
 		-v $(shell pwd):/tmp/get:Z \
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
@@ -329,7 +329,7 @@ uninstall-etcd: check-env
 		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
 		$(if $(VAULT_PASSWORD_FILE),-v $(VAULT_PASSWORD_FILE):/ansible/vault:Z,) \
 		$(EXTRA_VOLUMES) \
-		-v ./custom_steps:/ansible/playbooks/custom_steps \
+		-v ./custom_steps:/ansible/playbooks/custom_steps:Z \
 		-v $(shell pwd):/tmp/get:Z \
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
