@@ -106,6 +106,7 @@ sudo make monitoring-remove
 Файлы окружения должны называться `.env.<name>` (например, `.env.prod`). Пример содержимого:
 
 ```ini
+# Deployment configuration for example environment
 IMAGE_NAME=ansible-tarantool-enterprise
 DEPLOY_TOOL_VERSION_TAG=1.10.2
 SUPER_USER_NAME=admin
@@ -116,10 +117,15 @@ PATH_TO_PACKAGE=/opt/packages/${PACKAGE_NAME}
 
 # Optional extra parameters
 # VAULT_PASSWORD_FILE=/path/to/vault_password_file
+# BACKUP_LIMIT=storage-1-1
+# RESTORE_LIMIT=storage-1-1
 # EXTRA_VOLUMES=-v ./centos.yml:/ansible/playbooks/prepare/os/centos.yml:Z
 # EXTRA_VARS_FILE=/path/to/extra_vars.json
 # Example extra_vars.json content
 # {"custom_option": "value"}
+
+# For encrypting strings with ansible-vault:
+# sudo make encrypt-string ENV=env_name STRING_TO_ENCRYPT='your string'
 ```
 
 ## Использование Ansible Vault
