@@ -124,6 +124,20 @@ install_3_0: ## Install Tarantool 3.x (install_3_0.yml)
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
 		$(PLAYBOOK_CMD) $(EXTRA_VARS) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansible/vault) playbooks/install_3_0.yml
 
+install_cart: ## Install Cartridge app (deploy.yml)
+	@echo "Starting install Tarantool Cartridge deployment for [$(ENV)] environment..."
+	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
+	@echo "Using extra vars file: $(EXTRA_VARS_FILE)"
+	$(DOCKER_CMD) \
+		$(VOLUMES) \
+		$(MOUNT_PACKAGE) \
+		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
+		$(if $(VAULT_PASSWORD_FILE),-v $(VAULT_PASSWORD_FILE):/ansible/vault:Z,) \
+		$(EXTRA_VOLUMES) \
+		$(ENV_VARS) \
+		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
+		$(PLAYBOOK_CMD) $(EXTRA_VARS) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansible/vault) playbooks/deploy.yml
+
 install_tcm: ## Install Tarantool Cluster Manager (tcm/install.yml)
 	@echo "Starting Tarantool Cluster Manager deployment for [$(ENV)] environment..."
 	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
@@ -254,6 +268,10 @@ deploy-tdb: ## Deploy TarantoolDB cluster
 deploy-tdb: check-env\
 			etcd_3_0 \
 			install_3_0
+
+deploy-tdg: ## Deploy Tarantool Data Grid cluster
+deploy-tdg: check-env\
+			install_cart
 
 deploy-tcm: ## Deploy Tarantool Cluster Manager
 deploy-tcm: check-env\
