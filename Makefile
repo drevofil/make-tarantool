@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 ENV ?= default
-VERSION ?= 1.6.3
+VERSION ?= 1.6.4
 
 # Load environment variables
 ENV_FILE := .env.$(ENV)
@@ -137,6 +137,20 @@ install_cart: ## Install Cartridge app (deploy.yml)
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
 		$(PLAYBOOK_CMD) $(EXTRA_VARS) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansible/vault) playbooks/deploy.yml
+
+update_cart: ## Install Cartridge app (deploy.yml)
+	@echo "Starting install Tarantool Cartridge deployment for [$(ENV)] environment..."
+	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
+	@echo "Using extra vars file: $(EXTRA_VARS_FILE)"
+	$(DOCKER_CMD) \
+		$(VOLUMES) \
+		$(MOUNT_PACKAGE) \
+		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
+		$(if $(VAULT_PASSWORD_FILE),-v $(VAULT_PASSWORD_FILE):/ansible/vault:Z,) \
+		$(EXTRA_VOLUMES) \
+		$(ENV_VARS) \
+		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
+		$(PLAYBOOK_CMD) $(EXTRA_VARS) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansible/vault) playbooks/update.yml
 
 install_tcm: ## Install Tarantool Cluster Manager (tcm/install.yml)
 	@echo "Starting Tarantool Cluster Manager deployment for [$(ENV)] environment..."
@@ -277,6 +291,10 @@ deploy-tcm: ## Deploy Tarantool Cluster Manager
 deploy-tcm: check-env\
 			install_tcm
 
+update-tdg: ## Update Tarantool Data Grid cluster
+update-tdg: check-env\
+			update_cart
+
 gen-prometheus: ## Run custom_steps/generate-prometheus-config.yaml playbook
 gen-prometheus: check-env
 	@echo "Generate prometheus config for [$(ENV)] environment..."
@@ -402,6 +420,49 @@ restore-tarantool: ## Run Ansible restore.yml playbook
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
 		$(PLAYBOOK_CMD) $(EXTRA_VARS) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansible/vault) playbooks/start.yml $(if $(RESTORE_LIMIT),--limit $(RESTORE_LIMIT), --limit STORAGES,ROUTERS,cores,routers)
+
+stop-tarantool: ## Run Ansible stop.yml playbook
+	@echo "Starting backup for [$(ENV)] environment..."
+	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
+	@echo "Using extra vars file: $(EXTRA_VARS_FILE)"
+	$(DOCKER_CMD) \
+		$(VOLUMES) \
+		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
+		$(if $(VAULT_PASSWORD_FILE),-v $(VAULT_PASSWORD_FILE):/ansible/vault:Z,) \
+		$(EXTRA_VOLUMES) \
+		$(ENV_VARS) \
+		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
+		$(PLAYBOOK_CMD) $(EXTRA_VARS) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansible/vault) playbooks/stop.yml $(if $(LIMIT),--limit $(LIMIT), --limit STORAGES,ROUTERS,cores,routers)
+	$(DOCKER_CMD) \
+		$(VOLUMES) \
+		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
+		$(if $(VAULT_PASSWORD_FILE),-v $(VAULT_PASSWORD_FILE):/ansible/vault:Z,) \
+		$(EXTRA_VOLUMES) \
+		$(ENV_VARS) \
+		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
+		$(PLAYBOOK_CMD) $(EXTRA_VARS) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansible/vault) playbooks/backup.yml $(if $(LIMIT),--limit $(LIMIT), --limit STORAGES,ROUTERS,cores,routers)
+
+start-tarantool: ## Run Ansible stop.yml playbook
+	@echo "Starting backup for [$(ENV)] environment..."
+	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
+	@echo "Using extra vars file: $(EXTRA_VARS_FILE)"
+	$(DOCKER_CMD) \
+		$(VOLUMES) \
+		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
+		$(if $(VAULT_PASSWORD_FILE),-v $(VAULT_PASSWORD_FILE):/ansible/vault:Z,) \
+		$(EXTRA_VOLUMES) \
+		$(ENV_VARS) \
+		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
+		$(PLAYBOOK_CMD) $(EXTRA_VARS) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansible/vault) playbooks/start.yml $(if $(LIMIT),--limit $(LIMIT), --limit STORAGES,ROUTERS,cores,routers)
+	$(DOCKER_CMD) \
+		$(VOLUMES) \
+		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
+		$(if $(VAULT_PASSWORD_FILE),-v $(VAULT_PASSWORD_FILE):/ansible/vault:Z,) \
+		$(EXTRA_VOLUMES) \
+		$(ENV_VARS) \
+		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
+		$(PLAYBOOK_CMD) $(EXTRA_VARS) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansible/vault) playbooks/backup.yml $(if $(LIMIT),--limit $(LIMIT), --limit STORAGES,ROUTERS,cores,routers)
+
 
 encrypt-string: ## Encrypt a string with Ansible Vault. Requires VAULT_PASSWORD_FILE in .env file
 encrypt-string: check-env
