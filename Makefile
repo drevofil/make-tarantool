@@ -433,14 +433,6 @@ stop-tarantool: ## Run Ansible stop.yml playbook
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
 		$(PLAYBOOK_CMD) $(EXTRA_VARS) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansible/vault) playbooks/stop.yml $(if $(LIMIT),--limit $(LIMIT), --limit STORAGES,ROUTERS,cores,routers)
-	$(DOCKER_CMD) \
-		$(VOLUMES) \
-		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
-		$(if $(VAULT_PASSWORD_FILE),-v $(VAULT_PASSWORD_FILE):/ansible/vault:Z,) \
-		$(EXTRA_VOLUMES) \
-		$(ENV_VARS) \
-		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
-		$(PLAYBOOK_CMD) $(EXTRA_VARS) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansible/vault) playbooks/backup.yml $(if $(LIMIT),--limit $(LIMIT), --limit STORAGES,ROUTERS,cores,routers)
 
 start-tarantool: ## Run Ansible stop.yml playbook
 	@echo "Starting backup for [$(ENV)] environment..."
@@ -454,15 +446,6 @@ start-tarantool: ## Run Ansible stop.yml playbook
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
 		$(PLAYBOOK_CMD) $(EXTRA_VARS) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansible/vault) playbooks/start.yml $(if $(LIMIT),--limit $(LIMIT), --limit STORAGES,ROUTERS,cores,routers)
-	$(DOCKER_CMD) \
-		$(VOLUMES) \
-		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
-		$(if $(VAULT_PASSWORD_FILE),-v $(VAULT_PASSWORD_FILE):/ansible/vault:Z,) \
-		$(EXTRA_VOLUMES) \
-		$(ENV_VARS) \
-		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
-		$(PLAYBOOK_CMD) $(EXTRA_VARS) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansible/vault) playbooks/backup.yml $(if $(LIMIT),--limit $(LIMIT), --limit STORAGES,ROUTERS,cores,routers)
-
 
 encrypt-string: ## Encrypt a string with Ansible Vault. Requires VAULT_PASSWORD_FILE in .env file
 encrypt-string: check-env
