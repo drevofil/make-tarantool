@@ -178,15 +178,20 @@ all:
 ## Пользовательские параметры
 
 ### Дополнительные переменные
-Создайте JSON-файл с дополнительными переменными и укажите его в `EXTRA_VARS_FILE`:
+Создать JSON-файл с дополнительными переменными и укажите его в `EXTRA_VARS_FILE`:
 ```json
 {
   "custom_option": "value"
 }
 ```
+### Дополнительные аргументы ansible
+Указать дополнительные аргументы ansible в переменной `EXTRA_VARS` при запуске команд
+```bash
+sudo make ENV=local deploy-tdb EXTRA_VARS="-e tarantool_remote_backups_dir=/mnt/backups"
+```
 
 ### Дополнительные тома
-Добавляйте кастомные тома через `EXTRA_VOLUMES`:
+Для добавления кастомных маунтов указать переменную `EXTRA_VOLUMES`:
 ```ini
 EXTRA_VOLUMES=-v ./centos.yml:/ansible/playbooks/prepare/os/centos.yml:Z
 ```
