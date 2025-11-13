@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 ENV ?= default
-VERSION ?= 1.7.0
+VERSION ?= 1.7.1
 
 # Load environment variables
 ENV_FILE := .env.$(ENV)
@@ -124,6 +124,20 @@ install_3_0: ## Install Tarantool 3.x (install_3_0.yml)
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
 		$(PLAYBOOK_CMD) $(EXTRA_VARS_FULL) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansible/vault) playbooks/install_3_0.yml
+
+logrotate: ## Configure logrotate (logrotate.yml)
+	@echo "Starting install Tarantool 3.x deployment for [$(ENV)] environment..."
+	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
+	@echo "Using extra vars: $(EXTRA_VARS_FULL)"
+	$(DOCKER_CMD) \
+		$(VOLUMES) \
+		$(MOUNT_PACKAGE) \
+		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
+		$(if $(VAULT_PASSWORD_FILE),-v $(VAULT_PASSWORD_FILE):/ansible/vault:Z,) \
+		$(EXTRA_VOLUMES) \
+		$(ENV_VARS) \
+		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
+		$(PLAYBOOK_CMD) $(EXTRA_VARS_FULL) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansible/vault) playbooks/logrotate.yml
 
 install_cart: ## Install Cartridge app (deploy.yml)
 	@echo "Starting install Tarantool Cartridge deployment for [$(ENV)] environment..."
@@ -282,7 +296,8 @@ env-template: ## Create template environment file
 deploy-tdb: ## Deploy TarantoolDB cluster
 deploy-tdb: check-env\
 			etcd_3_0 \
-			install_3_0
+			install_3_0 \
+			logrotate
 
 deploy-tdg: ## Deploy Tarantool Data Grid cluster
 deploy-tdg: check-env\
