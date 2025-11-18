@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 ENV ?= default
-VERSION ?= 1.7.1
+VERSION ?= 1.7.2
 
 # Load environment variables
 ENV_FILE := .env.$(ENV)
