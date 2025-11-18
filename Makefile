@@ -296,8 +296,7 @@ env-template: ## Create template environment file
 deploy-tdb: ## Deploy TarantoolDB cluster
 deploy-tdb: check-env\
 			etcd_3_0 \
-			install_3_0 \
-			logrotate
+			install_3_0 
 
 deploy-tdg: ## Deploy Tarantool Data Grid cluster
 deploy-tdg: check-env\
