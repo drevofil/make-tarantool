@@ -14,6 +14,9 @@ all:
     # ETCD vars for backup
     cartridge_etcd_host: 192.168.111.27
     cartridge_etcd_port: 2379
+    tarantool_configure_logrotate: true
+    logrotate_scripts:
+      postrotate: "kill -s HUP `cat {{ cartridge_run_dir }}/{{ inventory_hostname }}.pid`"
 
     tarantool_config_global:
       replication:
@@ -46,6 +49,15 @@ all:
             password: 'secret'
             roles:
             - super
+      log:
+        file: /app/logs/tarantooldb/{% raw %}{{ instance_name }}{% endraw %}.log
+        to: file
+        modules:
+          failover.execute: 1
+      failover:
+        log:
+          to: file
+          file: '/app/logs/tarantooldb/fc.log'
 
   children:
     ROUTERS:
