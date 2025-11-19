@@ -1,0 +1,13 @@
+    tarantool_configure_logrotate: true
+    logrotate_scripts:
+      postrotate: "kill -s HUP `cat {{ cartridge_run_dir }}/{{ inventory_hostname }}.pid`"
+---
+      log:
+        file: /app/logs/tarantooldb/{% raw %}{{ instance_name }}{% endraw %}.log
+        to: file
+        modules:
+          failover.execute: 1
+      failover:
+        log:
+          to: file
+          file: '/app/logs/tarantooldb/fc.log'
