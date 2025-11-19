@@ -1,7 +1,7 @@
 #!/bin/bash
 LOCK_DIR="/opt/ate/"
 LOCK_FILE="$LOCK_DIR/backup.lock"
-LOCK_TIMEOUT=3600
+LOCK_TIMEOUT=7100
 SCRIPT_NAME="tarantool-backup"
 BACKUP_TYPE="${1:-unknown}"
 BACKUP_ENV="test"
@@ -114,7 +114,7 @@ perform_backup() {
     local start_time=$(date +%s)
     log_info "Starting backup process"
     
-    sudo make backup-tarantool ENV=$BACKUP_ENV EXTRA_VARS="-e tarantool_remote_backups_dir=/mnt/tnt_backups/$BACKUP_TYPE"
+    cd /opt/ate/make-tarantool && sudo make backup-tarantool ENV=$BACKUP_ENV EXTRA_VARS="-e tarantool_remote_backups_dir=/mnt/tnt_backups/$BACKUP_TYPE"
     
     local exit_code=$?
     local end_time=$(date +%s)
