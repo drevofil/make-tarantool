@@ -13,7 +13,7 @@ LOCK_ACQUIRED=0
 log_to_syslog() {
     local priority="$1"
     local message="$2"
-    logger -t "$SCRIPT_NAME" -p "user.$priority" "$message"
+    logger -t "$SCRIPT_NAME" -p "user.$priority" "[$BASHPID] $message"
 }
 
 log_info() {
