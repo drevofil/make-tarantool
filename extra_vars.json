@@ -1,4 +1,8 @@
 {
 "tarantool_remote_backups_dir":"/app/backups/",
-"tarantool_ansible_serial_executors": "4"
+"tarantool_ansible_serial_executors": "4",
+"tt_failover_status_retries": 10,
+"tt_failover_status_delay": 10,
+"tt_failover_status_timeout": 60,
+"storage_group": "STORAGES"
 }

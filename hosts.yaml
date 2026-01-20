@@ -1,9 +1,65 @@
----
 all:
+  vars:
+    ansible_ssh_common_args: -o IdentitiesOnly=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no
+    ansible_ssh_retries: 5
+    cartridge_app_name: tarantooldb
+    tarantool_3_0_version_support: true
+    tarantool_config_etcd_endpoints:
+      - http://192.168.111.29:2379
+      - http://192.168.111.34:2379
+      - http://192.168.111.36:2379
+    # ETCD vars for etcd_3_0
+    etcd_host: 192.168.111.29
+    etcd_port: 2379
+    # ETCD vars for backup
+    cartridge_etcd_host: 192.168.111.29
+    cartridge_etcd_port: 2379
+    # For update and TT commands
+    tt_etcd_host: 192.168.111.29
+    tt_etcd_port: 2379
+    tt_etcd_prefix: /tarantool/tarantooldb
+    tarantool_config_global:
+      failover:
+        log:
+          to: file
+          file: '{{ cartridge_log_dir_parent }}/{% raw %}{{ instance_name }}{% endraw %}.log'
+      replication:
+        failover: supervised
+      iproto:
+        advertise:
+          peer:
+            login: replicator
+          sharding:
+            login: storage
+      credentials:
+        users:
+          replicator:
+            password: "replicator_password"
+            roles:
+            - replication
+            - dictionary_api_executor
+            privileges:
+            - permissions: [ execute ]
+              lua_call: [ 'failover.execute' ]
+          storage:
+            password: "storage_password"
+            roles:
+            - sharding
+          admin:
+            password: "admin_password"
+            roles:
+            - super
+          client:
+            password: "client_password" 
+            roles:
+            - super
   children:
     ROUTERS:
       children:
-        router-1:
+        router-1: {}
+        router-2: {}
+        router-3: {}
+        router-4: {}
       vars:
         tarantool_config_group:
           app:
@@ -14,6 +70,8 @@ all:
             - roles.crud-router
             - roles.metrics-export
             - dictionary.roles.router
+          memtx:
+            memory: 134217728
           roles_cfg:
             roles.crud-router:
               stats: true
@@ -22,9 +80,26 @@ all:
               stats_quantile_tolerated_error: 0.001
               stats_quantile_age_buckets_count: 5
               stats_quantile_max_age_time: 180
+    FC:
+      children:
+        fc-01: {}
+        fc-02: {}
+    fc-01:
+      hosts:
+        fc-r01-i01:
+      vars:
+        replicaset_alias: coordinator-1
+        tarantool_coordinator: true
+    fc-02:
+      hosts:
+        fc-r02-i01: {}
+      vars:
+        replicaset_alias: coordinator-2
+        tarantool_coordinator: true
     STORAGES:
       children:
-        storage-1:
+        storage-1: {}
+        storage-2: {}
       vars:
         tarantool_config_group:
           sharding:
@@ -35,31 +110,54 @@ all:
             - roles.metrics-export
             - dictionary.roles.storage
           memtx:
-            memory: 536870912			
+            memory: 134217728
           roles_cfg:
             roles.expirationd: []
+    # Storage Replicasets
     storage-1:
       hosts:
-        storage-1-1:
+        storage-1-1: {}
+        storage-1-2: {}
       vars:
         replicaset_alias: storage-1
-        tarantool_config_replicaset:
-          bootstrap_leader: storage-1-1
-          replication:
-            bootstrap_strategy: config
+
+    storage-2:
+      hosts:
+        storage-2-1: {}
+        storage-2-2: {}
+      vars:
+        replicaset_alias: storage-2
+
+    # Router Groups
     router-1:
       hosts:
-        router-1:
+        router-1-1: {}
       vars:
-        replicaset_alias: router-1	
-    tarantooldb_1:
+        replicaset_alias: router-1
+    router-2:
+      hosts:
+        router-2-1: {}
+      vars:
+        replicaset_alias: router-2
+    router-3:
+      hosts:
+        router-3-1: {}
+      vars:
+        replicaset_alias: router-3
+    router-4:
+      hosts:
+        router-4-1: {}
+      vars:
+        replicaset_alias: router-4
+    # Physical Host Groups
+    host1:
       hosts:
         storage-1-1:
           iproto:
             listen:
-            - uri: 192.168.0.105:3301
+            - uri: 192.168.111.29:3301
             advertise:
-              client: 192.168.0.105:3301
+              client: 192.168.111.29:3301
           roles_cfg:
             roles.metrics-export:
               http:
@@ -67,12 +165,25 @@ all:
                   endpoints:
                     - path: /metrics
                       format: prometheus
-        router-1:
+        storage-2-2:
           iproto:
             listen:
-            - uri: 192.168.0.105:3310
+            - uri: 192.168.111.29:3302
             advertise:
-              client: 192.168.0.105:3310
+              client: 192.168.111.29:3302
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8182
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+        router-1-1:
+          iproto:
+            listen:
+            - uri: 192.168.111.29:3310
+            advertise:
+              client: 192.168.111.29:3310
           roles_cfg:
             roles.metrics-export:
               http:
@@ -80,46 +191,77 @@ all:
                   endpoints:
                     - path: /metrics
                       format: prometheus
+        router-3-1:
+          iproto:
+            listen:
+            - uri: 192.168.111.29:3311
+            advertise:
+              client: 192.168.111.29:3311
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8191
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+        fc-r01-i01:
       vars:
-        ansible_host: 192.168.0.105
-        
-  vars:
-    cartridge_cluster_cookie: tarantooldbcookie
-    ansible_ssh_common_args: -o IdentitiesOnly=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no
-    ansible_ssh_retries: 5
-    cartridge_app_name: tarantooldb
-    tarantool_3_0_version_support: true
-    tarantool_config_etcd_endpoints:
-      - http://192.168.0.105:2379
-    # ETCD vars for etcd_3_0
-    etcd_host: 92.168.0.105
-    etcd_port: 2379
-    # ETCD vars for backup
-    cartridge_etcd_host: 92.168.0.105
-    cartridge_etcd_port: 2379
-    tarantool_config_global:
-      iproto:
-        advertise:
-          peer:
-            login: replicator
-          sharding:
-            login: storage
-      credentials:
-        users:
-          replicator:
-            password: 'replicator_password'
-            roles:
-            - replication
-            - dictionary_api_executor
-          storage:
-            password: 'storage_password'
-            roles:
-            - sharding
-          admin:
-            password: 'secret-cluster-cookie'
-            roles:
-            - super
-          client:
-            password: 'secret'
-            roles:
-            - super
+        ansible_host: 192.168.111.29
+    host2:
+      hosts:
+        storage-1-2:
+          iproto:
+            listen:
+            - uri: 192.168.111.34:3301
+            advertise:
+              client: 192.168.111.34:3301
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8181
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+        storage-2-1:
+          iproto:
+            listen:
+            - uri: 192.168.111.34:3302
+            advertise:
+              client: 192.168.111.34:3302
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8182
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+        router-2-1:
+          iproto:
+            listen:
+            - uri: 192.168.111.34:3310
+            advertise:
+              client: 192.168.111.34:3310
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8190
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+        router-4-1:
+          iproto:
+            listen:
+            - uri: 192.168.111.34:3311
+            advertise:
+              client: 192.168.111.34:3311
+          roles_cfg:
+            roles.metrics-export:
+              http:
+                - listen: 8191
+                  endpoints:
+                    - path: /metrics
+                      format: prometheus
+
+        fc-r02-i01:
+      vars:
+        ansible_host: 192.168.111.34
