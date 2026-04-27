@@ -14,6 +14,21 @@ straightforward as possible.
 ### Changed
  
 ### Fixed
+
+## [1.9.0] - 2026-04-27
+ 
+### Added
+
+- Добавлен таргет `get_tcm_password`. Команда получает сгенерированный начальный пароль админитратора Tarantool Cluster Manager из логов
+- Добавлен таргет `set_bashrc`, который настраивает systemctl user scope и добавляет tt в $PATH пользователя tarantool
+ 
+### Changed
+
+- Изменён таргет `env_prepare`. Из него убран вызов плейбука `set-bashrc.yml`, теперь это отдельный target `set_bashrc` 
+- Таргет `get_tcm_password` добавлен в шаг установки Tarantool Cluster Manager `deploy-tcm`
+- Таргет `set_bashrc` добавлен в шаг устаноки Tarantool DB `deploy-tdb`
+ 
+### Fixed
  
 ## [1.8.0] - 2026-01-20
   

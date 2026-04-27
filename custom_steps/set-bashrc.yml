@@ -1,6 +1,6 @@
 ---
 - name: Configure of a server
-  become: "{{ tarantool_shared_become }}"
+  become: no
   hosts: "{{ tarantool_shared_hosts | default('all') }}"
   gather_facts: false
   tasks:
@@ -13,13 +13,20 @@
       delegate_to: localhost
       register: get_unique_physical_machines_res
       tags: always
-
+    - name: Detect and normalize OS distribution
+      ansible.builtin.import_role:
+        name: tarantool.enterprise.os_configure
+        tasks_from: find_os.yml
     - name: Add block to .bashrc
       ansible.builtin.blockinfile:
         path: /home/tarantool/.bashrc
         block: |
           export XDG_RUNTIME_DIR="/run/user/$UID"
           export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
+          for dist in {{os_configure_base_dir}}/{{cartridge_app_name}}/dist/*
+          do
+            export PATH+=:"$dist"
+          done
         marker: "# {mark} ANSIBLE MANAGED BLOCK - variables"
         state: present
       become: yes

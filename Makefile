@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 ENV ?= default
-VERSION ?= 1.8.0
+VERSION ?= 1.9.0
 
 # Load environment variables
 ENV_FILE := .env.$(ENV)
@@ -86,6 +86,11 @@ env_prepare: ## Prepare hosts before install
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
 		$(PLAYBOOK_CMD) $(EXTRA_VARS_FULL) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansible/vault) playbooks/env_prepare.yml
+
+set_bashrc:
+	@echo "Setting bash profile for tarantool user [$(ENV)] environment with root privileges..."
+	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
+	@echo "Using extra vars: $(EXTRA_VARS_FULL)"
 	$(DOCKER_CMD) \
 		$(VOLUMES) \
 		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
@@ -95,7 +100,6 @@ env_prepare: ## Prepare hosts before install
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
 		$(PLAYBOOK_CMD) $(EXTRA_VARS_FULL) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansible/vault) playbooks/custom_steps/set-bashrc.yml
-
 
 etcd_3_0: # Store cluster config in ETCD (etcd_3_0.yml)
 	@echo "Starting ETCD preparation for [$(ENV)] environment..."
@@ -180,6 +184,20 @@ install_tcm: ## Install Tarantool Cluster Manager (tcm/install.yml)
 		$(ENV_VARS) \
 		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
 		$(PLAYBOOK_CMD) $(EXTRA_VARS_FULL) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansible/vault) playbooks/tcm/install.yml
+
+get_tcm_password: ## Get Tarantool Cluster Manager init passdword (custom_steps/get-tcm-init-password.yaml)
+	@echo "Get Tarantool Cluster Manager admin  password for [$(ENV)] environment..."
+	@echo "Using extra volumes: $(EXTRA_VOLUMES)"
+	@echo "Using extra vars: $(EXTRA_VARS_FULL)"
+	$(DOCKER_CMD) \
+		$(VOLUMES) \
+		$(if $(EXTRA_VARS_FILE),-v $(EXTRA_VARS_FILE):/ansible/extra_vars.json:Z,) \
+		$(if $(VAULT_PASSWORD_FILE),-v $(VAULT_PASSWORD_FILE):/ansible/vault:Z,) \
+		-v ./custom_steps:/ansible/playbooks/custom_steps:Z \
+		$(EXTRA_VOLUMES) \
+		$(ENV_VARS) \
+		$(IMAGE_NAME):$(DEPLOY_TOOL_VERSION_TAG) \
+		$(PLAYBOOK_CMD) $(EXTRA_VARS_FULL) $(if $(VAULT_PASSWORD_FILE), --vault-password-file /ansible/vault)  playbooks/custom_steps/get-tcm-init-password.yaml
 
 uninstall-tarantool: ## Uninstall Tarantool (uninstall.yml)
 uninstall-tarantool: check-env
@@ -293,17 +311,19 @@ env-template: ## Create template environment file
 	@echo "# sudo make encrypt-string ENV=env_name STRING_TO_ENCRYPT='your string'" >> .env.example
 
 deploy-tdb: ## Deploy TarantoolDB cluster
-deploy-tdb: check-env\
+deploy-tdb: check-env \
 			etcd_3_0 \
-			install_3_0 
+			install_3_0 \
+			set_bashrc
 
 deploy-tdg: ## Deploy Tarantool Data Grid cluster
 deploy-tdg: check-env\
 			install_cart
 
 deploy-tcm: ## Deploy Tarantool Cluster Manager
-deploy-tcm: check-env\
-			install_tcm
+deploy-tcm: check-env \
+			install_tcm \
+			get_tcm_password
 
 update-tdg: ## Update Tarantool Data Grid cluster
 update-tdg: check-env\
